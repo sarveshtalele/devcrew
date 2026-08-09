@@ -12,6 +12,7 @@ All notable changes to devcrew. Format: [Keep a Changelog](https://keepachangelo
 - `devcrew profile [name]`, `--profile` on `init`/`add`, and an interactive prompt when neither is given
 - `template/TOKEN-OPTIMIZATION.md` — the rules that apply only under the optimized profile. Added and removed automatically as the profile changes
 - `token-guard` read ceiling is now profile-driven via `DEVCREW_READ_LIMIT`
+- **Platform-aware installation.** The optimized-profile installer detects OS, architecture, and package manager, then picks the right path: homebrew on macOS; the prebuilt binary or `cargo` on Linux and WSL; scoop or cargo on Windows. Node hints match the detected manager (`apt-get`, `dnf`, `pacman`, `zypper`, `apk`, `winget`, `scoop`, `choco`). WSL is distinguished from Linux via `/proc/version`, and Git Bash is told to install rtk from PowerShell instead. Warns when a binary installs but its bin directory isn't on `PATH`
 
 ## [1.2.0] - 2026-08-09
 

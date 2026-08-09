@@ -245,6 +245,22 @@ devcrew profile normal                     # switch back
 
 Idempotent — re-run it after installing whatever it skipped.
 
+### How the installer behaves per platform
+
+It detects the OS, architecture, and package manager, then picks the right path. Nothing is assumed.
+
+| Platform | devcrew itself | caveman | rtk | Notes |
+|---|---|---|---|---|
+| **macOS** (Intel / Apple silicon) | `install.sh` | `curl \| bash`, needs node ≥18 | `brew install rtk`, falling back to the upstream script | `brew install node` if node is missing |
+| **Linux** (Debian/Fedora/Arch/SUSE/Alpine) | `install.sh` | `curl \| bash`, needs node ≥18 | upstream script → prebuilt binary for your arch; `cargo install rtk` if that fails | node hint matches your package manager: `apt-get`, `dnf`, `pacman`, `zypper`, `apk` |
+| **WSL** | `install.sh` | same as Linux | same as Linux | detected via `/proc/version`; treated as Linux, not Windows |
+| **Windows PowerShell** | `install.ps1` | `irm … \| iex` | `scoop install rtk`, else `cargo install rtk` | rtk has no MSI or winget package; node hint follows scoop/winget/choco |
+| **Windows Git Bash** | `install.sh` | works | **not here** — the script tells you to install rtk from PowerShell | the bash installer detects `MINGW*`/`MSYS*` and says so |
+
+Common to every platform: `git` and `python3` are required, the linter runs through `npx` so it needs no install, and the script is idempotent — re-run it after installing whatever it had to skip. If a binary installs but isn't found afterward, it warns about `~/.local/bin` and `~/.cargo/bin` not being on `PATH`.
+
+Windows needs a POSIX shell for the gates themselves — `install.ps1` finds Git Bash or WSL and writes a shim, and `.gitattributes` pins every script to LF so CRLF never turns a hook into a syntax error.
+
 ### Safety
 
 The installer never installs software silently. With no terminal attached and no `DEVCREW_YES=1`, every install prompt answers *no* and the script only wires the project. That keeps CI runs and scripted provisioning from pulling binaries you didn't ask for.

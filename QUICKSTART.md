@@ -80,7 +80,9 @@ Everything under **Required** should be green. Yellow warnings for optional tool
 | Bash results | full | rtk-filtered |
 | Design lint | advisory | blocking |
 
-Choosing `optimized` runs `scripts/setup-optimized.sh` for you — that is step 0 above, automated, scoped to the project folder. Skip step 0 entirely if you pick it.
+Choosing `optimized` runs the installer for you — step 0 above, automated and scoped to the project folder. Skip step 0 entirely if you pick it.
+
+It detects your platform and picks the right commands: homebrew on macOS, the prebuilt binary or `cargo` on Linux and WSL, scoop or cargo on Windows, and a node install hint matching your package manager (`apt-get`, `dnf`, `pacman`, `zypper`, `apk`, `winget`, `scoop`, `choco`). Git Bash is detected and told to install rtk from PowerShell instead. Full matrix in the [README](README.md#how-the-installer-behaves-per-platform).
 
 Change your mind later: `devcrew profile normal` or `devcrew profile optimized`. Nothing about your code or documents changes.
 

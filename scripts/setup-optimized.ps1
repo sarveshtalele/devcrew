@@ -24,8 +24,12 @@ function Ask  ($m) {
 
 Set-Location $Target
 $Target = (Get-Location).Path
+$arch = $env:PROCESSOR_ARCHITECTURE
+$pkg  = @('scoop','winget','choco','cargo') | Where-Object { Has $_ } | Select-Object -First 1
+if (-not $pkg) { $pkg = 'none' }
 Write-Host "devcrew — token-optimization profile" -ForegroundColor White
-Write-Host "target: $Target" -ForegroundColor DarkGray
+Write-Host "target:   $Target" -ForegroundColor DarkGray
+Write-Host "platform: windows ($arch), package manager: $pkg" -ForegroundColor DarkGray
 
 if (-not (Test-Path .claude/agents)) { Fail "not a devcrew project (no .claude/agents). Run: devcrew add ." }
 if (-not (Has git))     { Fail "git is required" }
@@ -33,7 +37,15 @@ if (-not (Has python3) -and -not (Has python)) { Fail "python is required" }
 
 Step "1/5  caveman — output compression"
 if (Test-Path "$env:USERPROFILE\.claude\skills\caveman") { Ok "already installed" }
-elseif (-not (Has node)) { Warn "node >= 18 not found. winget install --id OpenJS.NodeJS.LTS -e, then re-run" }
+elseif (-not (Has node)) {
+  $hint = switch ($pkg) {
+    'scoop'  { 'scoop install nodejs-lts' }
+    'winget' { 'winget install --id OpenJS.NodeJS.LTS -e' }
+    'choco'  { 'choco install nodejs-lts -y' }
+    default  { 'install node >= 18 from https://nodejs.org' }
+  }
+  Warn "node >= 18 not found. $hint, then re-run this script"
+}
 elseif (Ask "Install caveman globally?") {
   try { Invoke-RestMethod https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.ps1 | Invoke-Expression; Ok "caveman installed" }
   catch { Warn "caveman install failed — re-run this script to retry" }
@@ -42,9 +54,10 @@ elseif (Ask "Install caveman globally?") {
 Step "2/5  rtk — tool-output compression"
 if (Has rtk) { Ok "already installed" }
 elseif (Ask "Install rtk?") {
-  if (Has scoop)     { scoop install rtk; Ok "rtk installed via scoop" }
-  elseif (Has cargo) { cargo install rtk;  Ok "rtk installed via cargo" }
-  else { Warn "install scoop (scoop.sh) or rust, then re-run — no prebuilt Windows installer" }
+  if (Has scoop)      { scoop install rtk; Ok "rtk installed via scoop" }
+  elseif (Has cargo)  { cargo install rtk;  Ok "rtk built from source via cargo" }
+  elseif (Has winget) { Warn "rtk is not on winget. Install scoop (https://scoop.sh) or rust (https://rustup.rs), then re-run" }
+  else { Warn "install scoop (https://scoop.sh) or rust (https://rustup.rs), then re-run — rtk has no MSI installer" }
 } else { Warn "skipped rtk" }
 if ((Has rtk) -and (Ask "Register the rtk hook (rtk init -g)?")) {
   rtk init -g | Out-Null; Ok "rtk hook registered — restart your agent"
@@ -106,6 +119,7 @@ Use it
   devcrew tokens      spend by agent and tool
   make design         lint tokens + regenerate the theme
 
+Platform detected: windows ($arch), package manager $pkg.
 Restart your agent so the rtk hook takes effect.
 Back to portable:  devcrew profile normal
 "@

@@ -32,11 +32,40 @@ ask() { # $1=prompt — yes only when asked or explicitly opted in.
   case "$reply" in [nN]*) return 1 ;; *) return 0 ;; esac
 }
 
+# ---------------------------------------------------------------- platform
+detect_os() {
+  case "$(uname -s)" in
+    Darwin) echo "macos" ;;
+    Linux)  grep -qi microsoft /proc/version 2>/dev/null && echo "wsl" || echo "linux" ;;
+    MINGW*|MSYS*|CYGWIN*) echo "windows-bash" ;;
+    *) echo "unknown" ;;
+  esac
+}
+detect_pkg() {
+  for m in brew apt-get dnf pacman zypper apk; do need "$m" && { echo "$m"; return; }; done
+  echo "none"
+}
+OS="$(detect_os)"; PKG="$(detect_pkg)"; ARCH="$(uname -m)"
+
+install_node_hint() {
+  case "$OS:$PKG" in
+    macos:brew)   echo "brew install node" ;;
+    *:apt-get)    echo "sudo apt-get install -y nodejs npm   (or use nvm for a current version)" ;;
+    *:dnf)        echo "sudo dnf install -y nodejs" ;;
+    *:pacman)     echo "sudo pacman -S nodejs npm" ;;
+    *:zypper)     echo "sudo zypper install -y nodejs" ;;
+    *:apk)        echo "sudo apk add nodejs npm" ;;
+    windows-bash:*) echo "winget install --id OpenJS.NodeJS.LTS -e" ;;
+    *)            echo "install node >= 18 from https://nodejs.org or via nvm" ;;
+  esac
+}
+
 cd "$TARGET" 2>/dev/null || { err "no such directory: $TARGET"; exit 1; }
 TARGET="$PWD"
 
 printf '%s\n' "${BOLD}devcrew — token-optimization profile${OFF}"
-printf '%s\n' "${DIM}target: $TARGET${OFF}"
+printf '%s\n' "${DIM}target:   $TARGET${OFF}"
+printf '%s\n' "${DIM}platform: $OS ($ARCH), package manager: $PKG${OFF}"
 
 # ---------------------------------------------------------------- 0. sanity
 [ -d .claude/agents ] || { err "not a devcrew project (no .claude/agents). Run: devcrew add ."; exit 1; }
@@ -48,8 +77,9 @@ step "1/5  caveman — output compression"
 if [ -d "$HOME/.claude/skills/caveman" ] || need caveman; then
   ok "already installed"
 elif ! need node; then
-  warn "node ≥18 not found — caveman needs it. Install node, then re-run this script."
-  warn "  macOS: brew install node   ·   Linux: use your package manager or nvm"
+  warn "node >= 18 not found — caveman needs it."
+  warn "  $(install_node_hint)"
+  warn "  then re-run: bash .devcrew/bin/setup-optimized.sh"
 elif ask "Install caveman globally (curl | bash from JuliusBrussee/caveman)?"; then
   if curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash; then
     ok "caveman installed"
@@ -65,13 +95,37 @@ step "2/5  rtk — tool-output compression"
 if need rtk; then
   ok "already installed ($(rtk --version 2>&1 | head -1))"
 elif ask "Install rtk (Rust binary that filters shell output before it reaches the model)?"; then
-  if need brew; then
-    brew install rtk && ok "rtk installed via homebrew"
-  else
-    curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh && ok "rtk installed"
-  fi
+  case "$OS" in
+    macos)
+      if need brew; then brew install rtk && ok "rtk installed via homebrew"
+      else
+        warn "homebrew not found — using the upstream installer"
+        curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh && ok "rtk installed"
+      fi ;;
+    linux|wsl)
+      # rtk ships prebuilt binaries; the upstream script picks the right one for $ARCH.
+      if curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh; then
+        ok "rtk installed"
+      elif need cargo; then
+        cargo install rtk && ok "rtk built from source via cargo"
+      else
+        warn "rtk install failed. Install rust (https://rustup.rs) then: cargo install rtk"
+      fi ;;
+    windows-bash)
+      warn "Git Bash detected. Install rtk from PowerShell instead:"
+      warn "  scoop install rtk    ·    or: cargo install rtk" ;;
+    *)
+      curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh && ok "rtk installed" ;;
+  esac
 else
   warn "skipped rtk"
+fi
+
+if ! need rtk && [ "$OS" != "windows-bash" ]; then
+  case "$PATH" in
+    *"$HOME/.local/bin"*|*"$HOME/.cargo/bin"*) : ;;
+    *) warn "if rtk installed but isn't found, add its bin dir to PATH (usually ~/.local/bin or ~/.cargo/bin)" ;;
+  esac
 fi
 
 if need rtk; then
@@ -198,5 +252,6 @@ ${BOLD}Use it${OFF}
 ${BOLD}Notes${OFF}
   · Restart your agent so the rtk hook takes effect.
   · Read ceiling is now ${BOLD}$(cat .devcrew/env 2>/dev/null | cut -d= -f2 || echo 600)${OFF} lines; token-guard blocks unbounded reads above it.
+  · Platform detected: ${BOLD}$OS${OFF} ($ARCH), package manager ${BOLD}$PKG${OFF}.
   · Back to portable: ${CYN}devcrew profile normal${OFF}
 EOF
