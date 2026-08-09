@@ -1,0 +1,31 @@
+{
+  "$comment": "Runtime profiles are orthogonal to delivery modes. A mode decides WHO works on the code (agents and stages). A profile decides HOW the agent runs (portability vs. token cost). Switch with: devcrew profile <name>",
+  "default": "normal",
+  "profiles": {
+    "normal": {
+      "label": "Normal — portable",
+      "use": "Cursor, Antigravity, VS Code, Copilot, Codex, or a team where not everyone installs extra tooling. Zero external dependencies.",
+      "installs": [],
+      "output_style": "plain",
+      "rtk": false,
+      "caveman": false,
+      "design_lint": "advisory",
+      "read_limit_lines": 800,
+      "portable_configs": ["AGENTS.md", ".cursor/rules/devcrew.mdc", ".agent/AGENTS.md", ".github/copilot-instructions.md"],
+      "notes": "Everything works with no install step. Token discipline is still enforced by hooks — budgets, delegation, on-demand reads — you just don't get the extra compression layers."
+    },
+    "optimized": {
+      "label": "Optimized — minimum tokens",
+      "use": "Claude Code, or any agent that supports skills and command hooks, when context and cost are the binding constraint.",
+      "installs": ["caveman", "rtk"],
+      "output_style": "caveman",
+      "rtk": true,
+      "caveman": true,
+      "caveman_level": "full",
+      "design_lint": "blocking",
+      "read_limit_lines": 600,
+      "portable_configs": ["AGENTS.md", ".cursor/rules/devcrew.mdc", ".agent/AGENTS.md", ".github/copilot-instructions.md"],
+      "notes": "Adds three compression layers on top of the hooks: caveman on what the agent writes, rtk on what tool calls return, and a blocking DESIGN.md token lint so design values are never re-derived in prose. Installs third-party software — always an explicit choice, never the default."
+    }
+  }
+}

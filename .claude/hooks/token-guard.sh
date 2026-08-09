@@ -2,6 +2,8 @@
 # PreToolUse: Read|Grep|Bash — blocks context-blowout patterns.
 # Exit 2 = block, stderr is returned to the agent as feedback.
 set -uo pipefail
+# Ceiling is profile-driven: 800 under "normal", 600 under "optimized".
+READ_LIMIT="${DEVCREW_READ_LIMIT:-800}"
 INPUT=$(cat)
 
 deny () { echo "TOKEN-GUARD: $1" >&2; exit 2; }
@@ -24,8 +26,8 @@ case "$TOOL" in
     [ "$FILE" = "-" ] && exit 0
     [ -f "$FILE" ] || exit 0
     LINES=$(wc -l < "$FILE" | tr -d ' ')
-    if [ "$LINES" -gt 800 ] && [ "$LIMIT" = "-" ]; then
-      deny "$FILE is $LINES lines. Use offset/limit, or delegate to a subagent. Unbounded reads of >800-line files are blocked (CLAUDE.md token discipline #2)."
+    if [ "$LINES" -gt "$READ_LIMIT" ] && [ "$LIMIT" = "-" ]; then
+      deny "$FILE is $LINES lines. Use offset/limit, or delegate to a subagent. Unbounded reads over $READ_LIMIT lines are blocked (CLAUDE.md token discipline #2)."
     fi
     ;;
   Grep)

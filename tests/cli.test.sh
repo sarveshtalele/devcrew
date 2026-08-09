@@ -155,6 +155,33 @@ else
   echo "  - npx or network unavailable, skipped"
 fi
 
+echo; echo "== runtime profiles =="
+N="$WORK/pnorm"; O="$WORK/popt"
+"$CLI" init "$N" --mode core --profile normal    --no-git >/dev/null 2>&1
+"$CLI" init "$O" --mode core --profile optimized --no-git >/dev/null 2>&1
+is  "normal recorded"            "$(cat "$N/.devcrew/profile")" "normal"
+is  "optimized recorded"         "$(cat "$O/.devcrew/profile")" "optimized"
+hasnt "normal has no token doc"  "$N/TOKEN-OPTIMIZATION.md"
+has "optimized has token doc"    "$O/TOKEN-OPTIMIZATION.md"
+has "active-profile.json"        "$O/.devcrew/active-profile.json"
+has "profiles shipped"           "$O/.devcrew/profiles/profiles.json"
+has "installer shipped"          "$O/.devcrew/bin/setup-optimized.sh"
+has "windows installer shipped"  "$O/.devcrew/bin/setup-optimized.ps1"
+is  "normal read ceiling 800"    "$(grep -o '[0-9]*' "$N/.devcrew/env" | head -1)" "800"
+is  "optimized read ceiling 600" "$(grep -o '[0-9]*' "$O/.devcrew/env" | head -1)" "600"
+( cd "$O" && exits "unknown profile rejected" 1 "$CLI" profile nonsense )
+( cd "$O" && "$CLI" profile normal >/dev/null 2>&1 )
+is  "switch clears optimized doc" "$([ -e "$O/TOKEN-OPTIMIZATION.md" ] && echo present || echo gone)" "gone"
+is  "switch recorded"             "$(cat "$O/.devcrew/profile")" "normal"
+
+echo; echo "== profile-driven read ceiling =="
+printf 'x\n%.0s' {1..700} > "$WORK/700.txt"
+is "blocked at 600" "$(printf '{"tool_name":"Read","tool_input":{"file_path":"'"$WORK"'/700.txt"}}' | DEVCREW_READ_LIMIT=600 "$KIT/.claude/hooks/token-guard.sh" >/dev/null 2>&1; echo $?)" "2"
+is "allowed at 800" "$(printf '{"tool_name":"Read","tool_input":{"file_path":"'"$WORK"'/700.txt"}}' | DEVCREW_READ_LIMIT=800 "$KIT/.claude/hooks/token-guard.sh" >/dev/null 2>&1; echo $?)" "0"
+
+echo; echo "== installer safety =="
+is "no silent install without a tty" "$(grep -c '\[ -t 0 \] || return 1' "$KIT/scripts/setup-optimized.sh")" "1"
+
 echo; echo "== uninstall =="
 "$CLI" uninstall "$E" >/dev/null 2>&1
 hasnt "agents removed"    "$E/.claude/agents"

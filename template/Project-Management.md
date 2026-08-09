@@ -8,7 +8,8 @@
 
 | Field | Value |
 |---|---|
-| Delivery mode | see `.devcrew/active-mode.json` (`devcrew mode`) |
+| Delivery mode | see `.devcrew/active-mode.json` (`devcrew mode`) — who works on the code |
+| Runtime profile | see `.devcrew/active-profile.json` (`devcrew profile`) — how the agent runs |
 | Current stage | `0 — Not started (template)` |
 | Active sprint | `—` |
 | Active epic | `—` |
@@ -165,6 +166,7 @@ Install/verify: `bash .claude/hooks/install.sh`. Config lives in `.claude/settin
 |---|---|
 | `devcrew verify` | The push gate: secrets → authorship → lint → tests → SAST/SCA → E2E. **Required before any push.** |
 | `devcrew mode [name]` | Show or switch delivery mode |
+| `devcrew profile [name]` | Show or switch runtime profile (`normal` / `optimized`) |
 | `devcrew agents` | Which agents are active right now |
 | `devcrew doctor` | Prerequisites and installation health |
 | `devcrew tokens` | Token spend by agent and tool |

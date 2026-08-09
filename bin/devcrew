@@ -23,6 +23,21 @@ py()   { need python3 || die "python3 is required (JSON parsing only)"; python3 
 mode_names() {
   py -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["modes"]))' "$KIT_ROOT/modes/modes.json"
 }
+profile_names() {
+  py -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["profiles"]))' "$KIT_ROOT/profiles/profiles.json"
+}
+profile_field() { # $1=profile $2=key
+  py -c '
+import json, sys
+p = json.load(open(sys.argv[1]))["profiles"]
+name, key = sys.argv[2], sys.argv[3]
+if name not in p: sys.exit("unknown profile: " + name)
+v = p[name][key]
+print(" ".join(str(x) for x in v) if isinstance(v, list) else v)
+' "$KIT_ROOT/profiles/profiles.json" "$1" "$2"
+}
+current_profile() { [ -f "$TARGET/.devcrew/profile" ] && cat "$TARGET/.devcrew/profile" || echo "normal"; }
+
 mode_field() { # $1=mode $2=jsonpath-ish key
   py -c '
 import json, sys
@@ -50,13 +65,15 @@ ${BOLD}SETUP${OFF}
 
 ${BOLD}OPERATE${OFF}
   mode [name]          Show or switch delivery mode ($(mode_names))
+  profile [name]       Show or switch runtime profile ($(profile_names))
   agents               List agents active in the current mode
   verify               Run the full gate: secrets, lint, tests, security. Required before push.
   tokens               Token consumption report
   sync <target>        Regenerate agent config: claude | cursor | antigravity | all
 
 ${BOLD}OPTIONS${OFF}
-  --mode <name>        Mode to use with init/add        (default: core)
+  --mode <name>        Delivery mode — who works on the code (default: core)
+  --profile <name>     Runtime profile — how the agent runs (default: normal)
   --stack <name>       py-ts | ts | py | none           (default: py-ts)
   --no-git             Skip git init and git hook installation
   --force              Overwrite existing kit files during add
@@ -66,6 +83,7 @@ ${BOLD}EXAMPLES${OFF}
   devcrew init my-app --mode core
   devcrew add . --mode secure          # existing repo, non-destructive
   devcrew mode full                    # scale up when the project gets regulated
+  devcrew init app --profile optimized  # installs caveman + rtk and wires them in
   devcrew verify && git push           # the only sanctioned way to push
 
 Docs: README.md (overview) · Guide.md (complete manual)
@@ -74,10 +92,11 @@ EOF
 
 # ---------------------------------------------------------------- args
 CMD="${1:-help}"; shift || true
-TARGET=""; MODE=""; STACK="py-ts"; NO_GIT=0; FORCE=0
+TARGET=""; MODE=""; PROFILE=""; STACK="py-ts"; NO_GIT=0; FORCE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --mode)    MODE="${2:-}"; shift 2 ;;
+    --profile) PROFILE="${2:-}"; shift 2 ;;
     --stack)   STACK="${2:-}"; shift 2 ;;
     --no-git)  NO_GIT=1; shift ;;
     --force)   FORCE=1; shift ;;
@@ -98,6 +117,7 @@ copy_payload() { # $1=target $2=overwrite(0|1)
   ( cd "$KIT_ROOT/template" && find . -type f ) | sed 's|^\./||' | while read -r rel; do
     [ "$rel" = "settings.json" ] && continue
     [ "$rel" = "README-project.md" ] && continue
+    [ "$rel" = "TOKEN-OPTIMIZATION.md" ] && continue
     local dest="$t/$rel"
     if [ -e "$dest" ] && [ "$ow" -eq 0 ]; then
       printf '%s  skip (exists): %s%s\n' "$DIM" "$rel" "$OFF"
@@ -119,6 +139,9 @@ copy_payload() { # $1=target $2=overwrite(0|1)
   # kit CLI available locally without a global install
   mkdir -p "$t/.devcrew/bin"; cp "$SELF/devcrew" "$t/.devcrew/bin/devcrew"; chmod +x "$t/.devcrew/bin/devcrew"
   cp -R "$KIT_ROOT/modes" "$t/.devcrew/modes"
+  cp -R "$KIT_ROOT/profiles" "$t/.devcrew/profiles"
+  cp "$KIT_ROOT/scripts/setup-optimized.sh" "$KIT_ROOT/scripts/setup-optimized.ps1" "$t/.devcrew/bin/" 2>/dev/null || true
+  chmod +x "$t/.devcrew/bin/setup-optimized.sh" 2>/dev/null || true
 }
 
 detect_stack() { # $1=target — write cheap, deterministic facts about an existing codebase
@@ -175,6 +198,24 @@ json.dump({"mode": sys.argv[2], **cfg}, open(sys.argv[3], "w"), indent=2)
 ' "$KIT_ROOT/modes/modes.json" "$m" "$t/.devcrew/active-mode.json"
 }
 
+apply_profile() { # $1=target $2=profile — record it and copy profile-only files
+  local t="$1" pr="$2"
+  mkdir -p "$t/.devcrew"
+  printf '%s\n' "$pr" > "$t/.devcrew/profile"
+  py -c '
+import json, sys, datetime
+cfg = json.load(open(sys.argv[1]))["profiles"][sys.argv[2]]
+out = {"profile": sys.argv[2], "applied_at": datetime.datetime.now().isoformat(timespec="seconds"), **cfg}
+json.dump(out, open(sys.argv[3], "w"), indent=2)
+' "$KIT_ROOT/profiles/profiles.json" "$pr" "$t/.devcrew/active-profile.json"
+  printf 'DEVCREW_READ_LIMIT=%s\n' "$(profile_field "$pr" read_limit_lines)" > "$t/.devcrew/env"
+  if [ "$pr" = "optimized" ]; then
+    [ -e "$t/TOKEN-OPTIMIZATION.md" ] || cp "$KIT_ROOT/template/TOKEN-OPTIMIZATION.md" "$t/TOKEN-OPTIMIZATION.md"
+  else
+    rm -f "$t/TOKEN-OPTIMIZATION.md"
+  fi
+}
+
 gen_portable_config() { # $1=target — AGENTS.md + Cursor rules from the same source of truth
   local t="$1"
   cp "$KIT_ROOT/template/AGENTS.md" "$t/AGENTS.md" 2>/dev/null || true
@@ -196,6 +237,19 @@ install_githooks() { # $1=target
 }
 
 # ---------------------------------------------------------------- commands
+choose_profile() { # prints the profile to use; asks only when interactive and unspecified
+  if [ -n "$PROFILE" ]; then printf '%s' "$PROFILE"; return; fi
+  if [ ! -t 0 ] || [ ! -t 1 ]; then printf 'normal'; return; fi
+  {
+    printf '\n%sRuntime profile%s — how the agent runs (independent of delivery mode)\n' "$BOLD" "$OFF"
+    printf '  %s1%s  normal      portable. Cursor, Antigravity, VS Code, Copilot. No installs.\n' "$BOLD" "$OFF"
+    printf '  %s2%s  optimized   minimum tokens. Installs caveman + rtk, blocking DESIGN.md lint.\n' "$BOLD" "$OFF"
+    printf '\nChoose [1]: '
+  } >&2
+  local reply; read -r reply </dev/tty 2>/dev/null || reply=1
+  case "$reply" in 2|optimized) printf 'optimized' ;; *) printf 'normal' ;; esac
+}
+
 cmd_init() {
   local m="${MODE:-core}"
   case " $(mode_names) " in *" $m "*) : ;; *) die "unknown mode '$m'. available: $(mode_names)" ;; esac
@@ -210,6 +264,10 @@ cmd_init() {
   copy_payload "$TARGET" 1
   mv "$TARGET/README-project.md" "$TARGET/README.md" 2>/dev/null || cp "$KIT_ROOT/template/README-project.md" "$TARGET/README.md"
   apply_mode "$TARGET" "$m"
+  local pr; pr="$(choose_profile)"
+  case " $(profile_names) " in *" $pr "*) : ;; *) die "unknown profile '$pr'. available: $(profile_names)" ;; esac
+  apply_profile "$TARGET" "$pr"
+  ok "profile: $pr — $(profile_field "$pr" label)"
   gen_portable_config "$TARGET"
   detect_stack "$TARGET" >/dev/null
   if [ "$NO_GIT" -eq 0 ]; then
@@ -218,7 +276,8 @@ cmd_init() {
     ok "git hooks installed (commit-msg: no AI attribution + conventional commits; pre-push: verification gate)"
   fi
   ok "$(ls "$TARGET/.claude/agents" | wc -l | tr -d ' ') agents · $(ls -d "$TARGET"/.claude/skills/*/ | wc -l | tr -d ' ') skills · $(ls "$TARGET"/.claude/hooks/*.sh | wc -l | tr -d ' ') hooks"
-  next_steps "$m"
+  run_profile_installer "$TARGET" "$pr"
+  next_steps "$m" "$pr"
 }
 
 cmd_add() {
@@ -229,23 +288,45 @@ cmd_add() {
   say "${DIM}existing files are never overwritten (use --force to replace kit files)${OFF}"
   copy_payload "$TARGET" "$FORCE"
   apply_mode "$TARGET" "$m"
+  local pr; pr="${PROFILE:-$(current_profile)}"
+  case " $(profile_names) " in *" $pr "*) : ;; *) die "unknown profile '$pr'. available: $(profile_names)" ;; esac
+  apply_profile "$TARGET" "$pr"
+  ok "profile: $pr"
   gen_portable_config "$TARGET"
   local kind; kind="$(detect_stack "$TARGET")"
   ok "codebase scanned: $kind — facts in .devcrew/project-facts.json (agents read this instead of re-discovering the stack)"
   [ "$NO_GIT" -eq 0 ] && install_githooks "$TARGET" && ok "git hooks installed"
   ok "kit added. Your source, README, and CI were left alone."
-  next_steps "$m"
+  run_profile_installer "$TARGET" "$pr"
+  next_steps "$m" "$pr"
+}
+
+run_profile_installer() { # $1=target $2=profile
+  [ "$2" = "optimized" ] || return 0
+  local script="$1/.devcrew/bin/setup-optimized.sh"
+  [ -x "$script" ] || script="$KIT_ROOT/scripts/setup-optimized.sh"
+  head_ "Installing token-optimization prerequisites"
+  if [ -t 0 ] && [ -t 1 ]; then
+    bash "$script" "$1" || warn "installer finished with warnings — re-run: bash .devcrew/bin/setup-optimized.sh"
+  else
+    say "  ${DIM}non-interactive shell — run this yourself:${OFF}"
+    say "  ${CYN}bash .devcrew/bin/setup-optimized.sh${OFF}   ${DIM}(Windows: powershell -ExecutionPolicy Bypass -File .devcrew\\bin\\setup-optimized.ps1)${OFF}"
+  fi
 }
 
 next_steps() {
   head_ "Next"
   say "  1. cd $TARGET"
-  say "  2. Install the token-reduction prerequisites (see README ${DIM}Prerequisites${OFF}):"
-  say "     ${CYN}curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash${OFF}"
-  say "     ${CYN}brew install rtk && rtk init -g${OFF}"
+  if [ "${2:-normal}" = "optimized" ]; then
+    say "  2. Restart your agent so the rtk hook loads, then turn on ${CYN}/caveman${OFF}"
+  else
+    say "  2. Portable profile — no installs needed. Want minimum tokens instead?"
+    say "     ${CYN}devcrew profile optimized${OFF}   ${DIM}(installs caveman + rtk)${OFF}"
+  fi
   say "  3. Open the project in Claude Code / Cursor / Antigravity and run: ${CYN}/project-init${OFF}"
   say "  4. Build a feature: ${CYN}/feature <name>${OFF}   ·   Ship it: ${CYN}devcrew verify && git push${OFF}"
   say "\n  Mode ${BOLD}$1${OFF}: $(mode_field "$1" label) — $(mode_field "$1" use)"
+  say "  Profile ${BOLD}${2:-normal}${OFF}: $(profile_field "${2:-normal}" label) — $(profile_field "${2:-normal}" use)"
 }
 
 cmd_mode() {
@@ -268,6 +349,41 @@ cmd_mode() {
   ok "mode → $want ($(mode_field "$want" label))"
   say "  agents: $(mode_field "$want" agents)"
   say "  stages: $(mode_field "$want" stages)"
+}
+
+cmd_profile() {
+  local want="$TARGET"
+  if [ "$want" = "." ] || [ -z "$want" ]; then
+    head_ "Runtime profiles"
+    local pr
+    for pr in $(profile_names); do
+      local cur=" "; [ "$pr" = "$(current_profile)" ] && cur="*"
+      printf '  %s %-10s %-26s %s\n' "$cur" "$pr" "$(profile_field "$pr" label)" "$(profile_field "$pr" use)"
+    done
+    if [ -f .devcrew/active-profile.json ]; then
+      say "\n${DIM}active detail:${OFF}"
+      py -c '
+import json
+d = json.load(open(".devcrew/active-profile.json"))
+for k in ("output_style", "caveman", "rtk", "design_lint", "read_limit_lines", "applied_at"):
+    if k in d: print(f"    {k:18} {d[k]}")
+'
+    fi
+    say "\n${DIM}* = active. Switch with: devcrew profile <name>${OFF}"
+    say "${DIM}A profile changes how the agent runs. A mode changes who works on the code.${OFF}"
+    return 0
+  fi
+  case " $(profile_names) " in *" $want "*) : ;; *) die "unknown profile '$want'. available: $(profile_names)" ;; esac
+  TARGET="."
+  [ -d .claude/agents ] || die "not a devcrew project (no .claude/agents). Run: devcrew add ."
+  apply_profile "." "$want"
+  ok "profile → $want ($(profile_field "$want" label))"
+  if [ "$want" = "optimized" ]; then
+    run_profile_installer "." optimized
+  else
+    say "  ${DIM}caveman and rtk are left installed globally; they simply stop being required.${OFF}"
+    say "  ${DIM}Say \"stop caveman\" in your agent to drop compressed output for this session.${OFF}"
+  fi
 }
 
 cmd_agents() {
@@ -332,7 +448,16 @@ cmd_doctor() {
   for p in git python3 bash; do
     if need "$p"; then ok "$p — $($p --version 2>&1 | head -1)"; else err "$p missing"; fi
   done
-  say "\n${BOLD}Token reduction (strongly recommended)${OFF}"
+  say "\n${BOLD}Runtime profile${OFF}"
+  local pr; pr="$(current_profile)"
+  ok "profile: $pr$([ -f .devcrew/active-profile.json ] && echo "" || echo " (not recorded — run: devcrew profile $pr)")"
+  if [ "$pr" = "optimized" ]; then
+    say "${DIM}  caveman and rtk are required under this profile${OFF}"
+  else
+    say "${DIM}  portable profile — caveman and rtk are optional${OFF}"
+  fi
+
+  say "\n${BOLD}Token reduction$([ "$(current_profile)" = "optimized" ] && echo " (required by profile)" || echo " (optional under 'normal')")${OFF}"
   if [ -d "$HOME/.claude/skills/caveman" ] || need caveman; then ok "caveman installed"
   else warn "caveman not installed — curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash"; fi
   if need rtk; then ok "rtk — $(rtk --version 2>&1 | head -1)"
@@ -388,6 +513,7 @@ case "$CMD" in
   init)      cmd_init ;;
   add)       cmd_add ;;
   mode)      cmd_mode ;;
+  profile)   cmd_profile ;;
   agents)    cmd_agents ;;
   verify)    cmd_verify ;;
   doctor)    cmd_doctor ;;

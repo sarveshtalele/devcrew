@@ -6,7 +6,9 @@ Zero to a running SDLC pipeline. Every command here is copy-pasteable. If someth
 
 ## 0. Prerequisites (3 minutes)
 
-You need `git`, `python3`, and a POSIX shell. Then install the two token-reduction tools — **do this first**, they change what everything below costs.
+You need `git`, `python3`, and a POSIX shell. That's it for the `normal` profile — skip to step 1.
+
+**For the `optimized` profile**, two more tools do the heavy lifting on token cost. You do **not** have to install them by hand: choosing `--profile optimized` in step 3 runs a script that does everything below, scoped to your project folder. The manual commands are here for reference and for when you want them globally before starting.
 
 ### macOS / Linux / WSL
 
@@ -66,7 +68,23 @@ Everything under **Required** should be green. Yellow warnings for optional tool
 
 ---
 
-## 2. Scaffold (1 minute)
+## 2. Pick a runtime profile
+
+`devcrew init` asks; you can also pass it.
+
+| | Choose `normal` if | Choose `optimized` if |
+|---|---|---|
+| | You use Cursor, Antigravity, VS Code, or Copilot, or teammates won't install extra tooling | You use Claude Code and context or cost is your binding constraint |
+| Installs | none | caveman + rtk (the script does it, after asking) |
+| Output | plain prose | caveman-compressed |
+| Bash results | full | rtk-filtered |
+| Design lint | advisory | blocking |
+
+Choosing `optimized` runs `scripts/setup-optimized.sh` for you — that is step 0 above, automated, scoped to the project folder. Skip step 0 entirely if you pick it.
+
+Change your mind later: `devcrew profile normal` or `devcrew profile optimized`. Nothing about your code or documents changes.
+
+## 3. Scaffold (1 minute)
 
 ### New project
 
@@ -98,7 +116,7 @@ Change any time: `devcrew mode secure`.
 
 ---
 
-## 3. Initialize (3 minutes)
+## 4. Initialize (3 minutes)
 
 Open the project in Claude Code, Cursor, or Antigravity, then:
 
@@ -114,7 +132,7 @@ When it finishes: placeholders filled, compliance scoped via ADR-001, unused age
 
 ---
 
-## 4. Build something (the rest of the time)
+## 5. Build something (the rest of the time)
 
 ```
 /feature user-login
@@ -134,7 +152,7 @@ Useful mid-flight:
 
 ---
 
-## 5. Ship
+## 6. Ship
 
 ```bash
 devcrew verify && git push

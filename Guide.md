@@ -7,6 +7,7 @@ Everything the [README](README.md) summarizes, in full.
 1. [Concepts](#1-concepts)
 2. [Installation](#2-installation)
 3. [CLI reference](#3-cli-reference)
+3b. [Runtime profiles](#3b-runtime-profiles)
 4. [Delivery modes](#4-delivery-modes)
 5. [The pipeline, stage by stage](#5-the-pipeline-stage-by-stage)
 6. [Agents](#6-agents)
@@ -176,6 +177,10 @@ Adds the kit to an existing project. **Never overwrites.** Existing files are sk
 
 Defaults to the mode already recorded in `.devcrew/mode`, or `core`.
 
+### `devcrew profile [name]`
+
+No argument: lists profiles, marks the active one, and prints its live settings from `.devcrew/active-profile.json`. With a name: applies it, and for `optimized` runs the installer.
+
 ### `devcrew mode [name]`
 
 No argument: lists modes and marks the active one. With a name: restores the full agent set, prunes to that mode, and rewrites `.devcrew/mode` and `.devcrew/active-mode.json`.
@@ -207,6 +212,50 @@ Renders `.claude/state/tokens.jsonl` — estimated tokens by agent and by tool. 
 Removes kit-owned files. Keeps `CLAUDE.md` and `Changelog.md`, which usually contain your edits. Never touches `src/`, `tests/`, or CI.
 
 ---
+
+## 3b. Runtime profiles
+
+A **mode** decides who works on the code. A **profile** decides how the agent runs. They are independent — any mode works under any profile.
+
+| | `normal` (default) | `optimized` |
+|---|---|---|
+| Target | Cursor, Antigravity, VS Code, Copilot, Codex, mixed teams | Claude Code, or any agent with skills and command hooks |
+| Installs | none | caveman + rtk |
+| Agent output | plain prose | caveman-compressed |
+| Tool results | full | rtk-filtered |
+| DESIGN.md lint | advisory | blocking in `make ci` and `devcrew doctor` |
+| Unbounded read ceiling | 800 lines | 600 lines |
+| Portable configs | generated | generated — portability is never traded away |
+
+```bash
+devcrew init my-app --profile optimized   # asks interactively if omitted
+devcrew profile                            # what's active, with detail
+devcrew profile normal                     # switch back
+```
+
+### What the installer does
+
+`scripts/setup-optimized.sh` — copied into every project at `.devcrew/bin/`, with a PowerShell twin for Windows:
+
+1. **caveman**, if missing. Asks first. Skips with a clear message when node is absent.
+2. **rtk**, via brew, scoop, cargo, or the upstream script, then offers `rtk init -g` to register the Bash-rewriting hook.
+3. **DESIGN.md lint** — runs Google's linter and reports findings.
+4. **Wires the project** — `.devcrew/active-profile.json`, read ceiling to 600 (`DEVCREW_READ_LIMIT` in `.devcrew/env` and `.claude/settings.json`), `make ci` blocking on `design-check`, `TOKEN-OPTIMIZATION.md` added and referenced from `CLAUDE.md` and `AGENTS.md`.
+5. **Verifies** and prints anything still missing.
+
+Idempotent — re-run it after installing whatever it skipped.
+
+### Safety
+
+The installer never installs software silently. With no terminal attached and no `DEVCREW_YES=1`, every install prompt answers *no* and the script only wires the project. That keeps CI runs and scripted provisioning from pulling binaries you didn't ask for.
+
+### Switching
+
+Switching profiles changes nothing about your code, trackers, agents, or documents — only how the agent runs. Going back to `normal` leaves caveman and rtk installed globally; they simply stop being required. Say "stop caveman" in your agent to drop compressed output for the current session.
+
+### Choosing
+
+Use `normal` when teammates are on other editors, when you're onboarding someone and transcripts should read naturally, when you're debugging something subtle and want unfiltered tool output, or when compressed prose in a review record would be a liability. Use `optimized` the rest of the time.
 
 ## 4. Delivery modes
 

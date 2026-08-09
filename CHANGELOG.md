@@ -2,6 +2,17 @@
 
 All notable changes to devcrew. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning: [SemVer](https://semver.org/).
 
+## [1.3.0] - 2026-08-09
+
+### Added
+- **Runtime profiles**, orthogonal to delivery modes. A mode decides who works on the code; a profile decides how the agent runs.
+  - `normal` (default) — portable, zero installs. Cursor, Antigravity, VS Code, Copilot, Codex.
+  - `optimized` — caveman + rtk + a blocking DESIGN.md token lint, and a 600-line unbounded-read ceiling instead of 800.
+- `scripts/setup-optimized.sh` and `setup-optimized.ps1` — install and wire the optimized profile into one project folder. Copied into every project at `.devcrew/bin/`. Idempotent, and they never install software without a terminal unless `DEVCREW_YES=1`
+- `devcrew profile [name]`, `--profile` on `init`/`add`, and an interactive prompt when neither is given
+- `template/TOKEN-OPTIMIZATION.md` — the rules that apply only under the optimized profile. Added and removed automatically as the profile changes
+- `token-guard` read ceiling is now profile-driven via `DEVCREW_READ_LIMIT`
+
 ## [1.2.0] - 2026-08-09
 
 ### Added

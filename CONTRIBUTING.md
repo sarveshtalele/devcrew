@@ -25,7 +25,9 @@ No build step. Everything is bash, markdown, and JSON.
 .claude/agents/   15 agent definitions (plugin + copied into projects)
 .claude/skills/   slash commands
 .claude/hooks/    agent hooks + hooks.json for the plugin
-modes/modes.json  mode definitions
+modes/modes.json  delivery-mode definitions
+profiles/         runtime-profile definitions
+scripts/          profile installers (bash + PowerShell)
 template/         the payload copied into target projects
 bin/devcrew      the CLI
 tests/            CLI test suite

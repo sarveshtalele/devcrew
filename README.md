@@ -43,6 +43,7 @@ A folder you install into any project. It contains:
 - **Deterministic gates** as shell hooks, not polite instructions: blocked secrets, blocked unverified pushes, blocked context-blowout reads, blocked AI authorship trailers.
 - **Standards baked in** — OWASP ASVS L2, OWASP LLM Top 10, SOC 2, GDPR, HIPAA, PCI DSS, IEEE 29148 requirements, IEEE 29119 testing, ISO/IEC 25010 quality, C4 + ADRs, WCAG 2.2 AA, DORA metrics.
 - **Five delivery modes** so a weekend project runs 4 agents and a regulated product runs all 15.
+- **Two runtime profiles** — `normal` runs anywhere with zero installs; `optimized` adds caveman, rtk, and a blocking design-token lint, installed for you by one script.
 - **A CLI** to install into a new or existing project, switch modes, verify before push, and report token spend.
 
 ## Why it's different
@@ -246,6 +247,48 @@ devcrew verify && git push
 ```
 
 ---
+
+## Two axes: mode and profile
+
+They are independent, and the distinction matters.
+
+- **Delivery mode** decides **who works on the code** — which agents exist and which pipeline stages run. Scale it with the stakes.
+- **Runtime profile** decides **how the agent runs** — portability versus token cost. Scale it with your tooling.
+
+| | `normal` | `optimized` |
+|---|---|---|
+| **For** | Cursor, Antigravity, VS Code, Copilot, Codex, mixed teams | Claude Code, or any agent with skills and command hooks |
+| **Installs** | nothing | caveman + rtk, by script, after asking |
+| **Agent output** | plain prose | caveman-compressed (~65% fewer output tokens on prose) |
+| **Tool results** | full | filtered by rtk (up to 90% of bash output) |
+| **DESIGN.md lint** | advisory | **blocking** in `make ci` and `devcrew doctor` |
+| **Unbounded read ceiling** | 800 lines | 600 lines |
+| **Portable configs** | AGENTS.md, Cursor, Antigravity, Copilot | same — portability is never traded away |
+
+Both profiles keep every hook-level control: per-agent budgets, delegated exploration, on-demand reads, fixed handoff blocks. `normal` is not "unoptimized" — it just doesn't require anyone to install anything.
+
+```bash
+devcrew init my-app --profile normal        # default
+devcrew init my-app --profile optimized     # runs the installer
+devcrew profile                             # what's active
+devcrew profile optimized                   # switch, any time
+```
+
+Run `devcrew init` interactively with no `--profile` and it asks. Non-interactive runs default to `normal` and never install software silently — including the installer itself, which skips every install when there's no terminal unless you pass `DEVCREW_YES=1`.
+
+Switching profiles touches no code, trackers, agents, or documents. It changes how the agent runs, not what it produced.
+
+### What `--profile optimized` actually does
+
+`scripts/setup-optimized.sh` (and `setup-optimized.ps1` on Windows), copied into every project at `.devcrew/bin/`:
+
+1. installs **caveman** if missing — asks first, skips cleanly if node is absent;
+2. installs **rtk** via brew, scoop, cargo, or the upstream script, then offers `rtk init -g`;
+3. checks **`Design.md`** against Google's linter and reports findings;
+4. writes `.devcrew/active-profile.json`, drops the read ceiling to 600 lines, makes `make ci` block on `design-check`, adds `TOKEN-OPTIMIZATION.md`, and points `CLAUDE.md` and `AGENTS.md` at it;
+5. verifies all of the above and prints what is still missing.
+
+Idempotent. Re-run it after installing anything it had to skip.
 
 ## Delivery modes
 
