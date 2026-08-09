@@ -26,6 +26,7 @@
 | Roadmap, OKRs, sprints, risks | `Project-Plan.md` |
 | Design tokens and UI rules | `Design.md` |
 | **Story → acceptance criteria → tests** | `User-Story-Testing.md` |
+| Capacity, data, consistency, failure, scaling, cost, zero-cost stack | `System-Design.md` |
 | An end-to-end worked example of the pipeline | [Example.md](https://github.com/sarveshtalele/devcrew/blob/main/Example.md) |
 
 ## 2. Departments & agents
@@ -116,7 +117,7 @@ Budgets per agent invocation. Exceeding = stop, summarize, hand back. Budget is 
 | release-manager | 20k | change record |
 
 **Mechanisms (deterministic, not advisory):**
-1. `.claude/hooks/token-guard.sh` (PreToolUse) — blocks unbounded `Read` on files >800 lines, blocks `grep -r`/`rg` without a path scope, blocks `cat`/`find /`, blocks `Read` on the six root MD files when the agent's role doesn't own them.
+1. `.claude/hooks/token-guard.sh` (PreToolUse) — blocks unbounded `Read` on files >800 lines, blocks `grep -r`/`rg` without a path scope, blocks `cat`/`find /`, blocks `Read` on the root MD files when the agent's role doesn't own them.
 2. `.claude/hooks/session-meter.sh` (PostToolUse) — appends per-tool token estimates to `.claude/state/tokens.jsonl`; `/token-report` renders it.
 3. `.claude/hooks/quality-gate.sh` (PostToolUse on Edit/Write) — formats + lints only the changed file. Catches errors at ~200 tokens instead of a 5k-token failed CI run.
 4. **Deterministic-first rule:** if a script, `rg`, `jq`, or a Makefile target can answer it, the agent MUST NOT reason it out from file contents. Scripts cost ~0 tokens; reading costs thousands.
@@ -155,6 +156,8 @@ Install/verify: `bash .claude/hooks/install.sh`. Config lives in `.claude/settin
 | test-plan | `/test-plan <epic>` | IEEE 29119 plan → concrete unit/integration/E2E tasks |
 | release | `/release <version>` | Stages 10–12 with change record + rollback |
 | token-report | `/token-report` | Renders `.claude/state/tokens.jsonl` |
+| scout | `/scout <question>` | Answers a codebase question in a subagent — files never enter the main context |
+| compact-docs | `/compact-docs` | Shrinks standing documents; converts repeated rules into hooks |
 
 ## 6b. CLI (deterministic, token-cheap — prefer these over reasoning)
 

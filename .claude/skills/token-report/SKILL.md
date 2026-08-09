@@ -1,5 +1,6 @@
 ---
 name: token-report
+allowed-tools: Bash(python3 *), Read, Edit
 description: Report token consumption for this session and project, per agent and per tool, from the session-meter hook log. Use to find context waste and check budget compliance.
 ---
 

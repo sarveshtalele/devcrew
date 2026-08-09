@@ -17,9 +17,10 @@ This repo is an **SDLC template**. A department-agent team builds every feature 
 | What changed and when | `Changelog.md` |
 | Department task boards | `trackers/<dept>.md` |
 | How stories become tests | `User-Story-Testing.md` |
+| Capacity, consistency, scaling, cost | `System-Design.md` |
 | Architecture decisions | `docs/adr/` |
 
-**YOU MUST** read only the file that answers the current question. Reading all six costs ~15k tokens and degrades every later turn.
+**YOU MUST** read only the file that answers the current question. Reading them all costs ~15k tokens and degrades every later turn.
 
 ## Token discipline (HARD RULES)
 
@@ -52,6 +53,7 @@ make lint       # ruff + mypy --strict + eslint + tsc --noEmit
 make fmt        # ruff format + prettier
 make test       # pytest -q + vitest run   (unit + integration)
 make e2e        # playwright test
+make design     # lint Design.md tokens + regenerate the Tailwind theme
 make sec        # bandit + pip-audit + semgrep + gitleaks + pnpm audit
 make ci         # lint + test + sec + e2e   (what CI runs)
 ```

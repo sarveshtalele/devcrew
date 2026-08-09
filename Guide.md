@@ -360,7 +360,7 @@ Add it to a mode in `modes/modes.json`, give it a tracker in `trackers/`, and ad
 | `/compact-docs` | Shrinks the standing documents so every future turn costs less |
 | `/token-report` | Where the context actually went, with one concrete fix |
 
-`/project-init`, `/feature`, and `/release` have side effects and are manual-invocation only. The rest can also be applied automatically when relevant.
+`/project-init`, `/feature`, `/release`, and `/compact-docs` have side effects and are manual-invocation only. The rest can also be applied automatically when relevant.
 
 ---
 
@@ -470,7 +470,69 @@ Forbidden, and blocked at the agent layer. The gates *are* the control. If a gat
 
 ## 11. Design system workflow
 
-`Design.md` has two layers: YAML front matter with machine-readable tokens, and prose explaining application. Tokens are the source of truth; the Tailwind config is generated from them.
+`Design.md` follows the [DESIGN.md format from Google Labs](https://github.com/google-labs-code/design.md): YAML front matter with machine-readable tokens, prose explaining when each applies. Tokens are the source of truth; the Tailwind theme is generated from them.
+
+### Tooling
+
+No install step — the linter runs through `npx`:
+
+```bash
+make design          # lint + export tokens.css and tailwind.tokens.json
+make design-check    # lint only; this is what CI runs on every push
+```
+
+Directly, if you want the raw commands:
+
+```bash
+npx -y @google/design.md lint Design.md
+npx -y @google/design.md lint --format json Design.md
+npx -y @google/design.md export --format css-tailwind Design.md
+npx -y @google/design.md export --format json-tailwind Design.md
+npx -y @google/design.md export --format dtcg Design.md      # Design Tokens Community Group format
+npx -y @google/design.md diff Design.md Design-v2.md          # what changed between two versions
+npx -y @google/design.md spec --rules                         # the rule list
+```
+
+On Windows PowerShell, `.md` file association can collide — use `npx -p @google/design.md designmd lint Design.md`.
+
+Programmatic, if you need it in a script:
+
+```javascript
+import { lint } from '@google/design.md/linter';
+const report = lint(markdownString);
+console.log(report.findings, report.designSystem);
+```
+
+### What the linter enforces
+
+| Rule | Severity | Catches |
+|---|---|---|
+| `broken-ref` | error | a `{colors.brand.500}` reference that doesn't resolve |
+| `contrast-ratio` | warning | text/background pairs under WCAG AA 4.5:1 — **treated as blocking here** |
+| `section-order` | warning | markdown sections out of canonical order |
+| `unknown-key` | warning | typos in schema keys |
+| `token-like-ignored` | warning | a token-shaped value under a key the schema doesn't know |
+| `missing-primary`, `missing-typography` | warning | a design system with no primary colour or no type scale |
+| `orphaned-tokens` | warning | tokens nothing references — usually dead weight |
+| `token-summary`, `missing-sections`, `omitted-rules` | info | inventory and configuration checks |
+
+`devcrew doctor` runs the lint too, so a broken design system shows up in the same health check as everything else.
+
+The shipped `Design.md` lints at **0 errors, 0 contrast findings**, with six documented `orphaned-tokens` warnings for the border and focus colours — the spec's component sub-token list has no border or outline slot, so those values are applied through CSS in the document rather than through the token export.
+
+Two schema details worth knowing before you edit tokens:
+
+- **Component sub-tokens are a closed set**: `backgroundColor`, `textColor`, `typography`, `rounded`, `padding`, `size`, `height`, `width`. Anything else (`background`, `paddingX`, `borderColor`, `minHeight`) is reported as an unrecognized sub-token.
+- **There is no theme axis.** Dark mode is expressed as additional named tokens — `primaryDark`, `surfaceDark` — and paired component entries such as `buttonPrimaryDark`. Components never branch on theme themselves; the generated theme wires both.
+
+### Workflow
+
+1. Change a value **in `Design.md` front matter** — never in generated files, never inline in a component.
+2. `make design` — lint, then regenerate `src/styles/tokens.css` and `tailwind.tokens.json`.
+3. Fix anything the contrast rule flags. It is checked arithmetically, not by eye.
+4. Commit `Design.md` **and** the regenerated output together, so the two never drift.
+
+Changing brand colours is a `colors`-block edit plus a regenerate. Nothing else moves.
 
 Defaults: modern-SaaS vibrant (violet→teal gradient), light and dark as equal first-class themes, WCAG 2.2 AA, Inter + JetBrains Mono, Tailwind + shadcn/ui.
 

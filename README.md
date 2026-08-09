@@ -59,6 +59,34 @@ A folder you install into any project. It contains:
 | Authorship | AI credited as co-author | n/a | blocked at commit-msg |
 | Price | — | \$2k–\$10k+/month | **\$0** |
 
+### devcrew vs. Spec Kit vs. OpenSpec
+
+All three exist because prompting an agent straight into code produces the wrong thing. They solve different slices of that.
+
+| | [Spec Kit](https://github.com/github/spec-kit) | [OpenSpec](https://github.com/Fission-AI/OpenSpec) | **devcrew** |
+|---|---|---|---|
+| **Owner** | GitHub | Fission AI | community |
+| **Core idea** | Specifications become executable — spec first, then code | A lightweight planning layer before code, fluid not rigid | The whole lifecycle, with the rules enforced by hooks |
+| **Covers** | constitution → specify → plan → tasks → implement → converge | explore → propose → apply → archive | requirement → PRD → architecture → design → code → review → tests → CI → security → staging → UAT → prod → monitoring → metrics |
+| **Stops at** | implementation | implementation | production, then feedback into the next iteration |
+| **Roles** | one agent, phase by phase | one agent, phase by phase | **15 specialists**, each with isolated context and its own budget |
+| **Enforcement** | phase gates in the workflow | convention | **shell hooks with exit codes** — secrets, unverified pushes, AI authorship, and context blowouts are blocked, not discouraged |
+| **Review** | — | — | fresh-context `code-reviewer` that never saw the code being written |
+| **Security** | — | — | STRIDE threat models, OWASP ASVS L2 + LLM Top 10, SAST/SCA/secrets in CI |
+| **Compliance** | — | — | SOC 2 / GDPR / HIPAA / PCI control maps + append-only evidence log |
+| **Testing** | tasks may include tests | tasks may include tests | story → acceptance criteria → assigned test level, traceability matrix, axe + keyboard + 3 viewports |
+| **Ops** | — | — | SLOs, runbooks, canary + rollback, DORA metrics |
+| **Design system** | — | — | DESIGN.md tokens, contrast-linted in CI |
+| **Token control** | — | — | per-agent budgets, `token-guard`, `/scout`, `/compact-docs`, measured spend |
+| **Brownfield** | supported | a stated design goal | `add` is non-destructive; the repo is scanned into `project-facts.json` |
+| **Artifacts** | specs, plans, tasks, checklists | proposals, specs, design, tasks | all of that **plus** ADRs, threat models, test plans, trackers, runbooks, change records, evidence log |
+| **Scales down** | phases are fixed | yes, by design | 5 modes, 4→15 agents |
+| **Runtime** | Python CLI (`uv`) | Node CLI | bash + python3, no install into your project |
+
+**Honest summary.** Spec Kit and OpenSpec are *specification* tools: they make sure the agent builds the right thing. devcrew is a *delivery* system: it also decides who reviews it, what must be true before it merges, what cannot be pushed, and what has to exist before it reaches users.
+
+If you only want a better plan before coding, those are lighter and you should use them. If your problem is what happens *after* the plan — review, tests, security, compliance, release, on-call — that's the gap devcrew fills. They compose: keep OpenSpec's `openspec/` proposals as your stage-2 artifact and let devcrew run stages 3–15 around them; nothing in the pipeline requires the PRD to come from `product-manager`.
+
 ### Zero paid software
 
 Every capability maps to something free and self-hosted:
@@ -315,7 +343,7 @@ The context window is the binding constraint on agent quality, so the kit treats
 - **Per-agent budgets** in `Project-Management.md` §4, enforced by `token-guard` rather than good intentions.
 - **Deterministic-first.** If `rg`, `jq`, or a Makefile target can answer it, no agent may reason it out of file contents. A script costs ~0 tokens; reading costs thousands.
 - **Delegate, don't read.** Any search across more than 3 files goes to a subagent; only its handoff block returns.
-- **Read on demand.** The six root documents are never loaded together — that alone is ~15k tokens.
+- **Read on demand.** The root documents are never loaded together — that alone is ~15k tokens.
 - **Fixed handoff blocks** keep the orchestrator's context flat no matter how many stages run.
 - **Measured, not assumed.** `devcrew tokens` reports actual spend by agent and by tool from the session meter.
 
@@ -415,13 +443,42 @@ your-project/
 template/          the payload copied into target projects
 modes/modes.json   mode definitions
 bin/devcrew       the CLI
-tests/cli.test.sh  83 assertions across the CLI, hooks, and git hooks
+tests/cli.test.sh  108 assertions across the CLI, hooks, git hooks, plugin schema, and design tooling
 ```
 
 Agents and skills live in `.claude/` so that opening this repository in Claude Code gives you the full team immediately — no setup step, and one source of truth for both the plugin and the CLI.
 </details>
 
 ---
+
+## The design system
+
+`Design.md` follows the [DESIGN.md format from Google Labs](https://github.com/google-labs-code/design.md): YAML front matter holds machine-readable tokens, the prose below holds the rationale. Agents read both — the tokens so they produce exact values, the prose so they know when a value applies.
+
+devcrew ships a filled-in system rather than an empty schema: a modern-SaaS palette in **light and dark as equal first-class themes**, an 8-step type scale, 4px spacing grid, 5 elevation levels, and component specs for buttons, inputs, cards, dialogs, toasts, badges, and tables — all at WCAG 2.2 AA.
+
+The important part is that it is **verified, not asserted**:
+
+```bash
+make design          # lint, then export tokens.css + tailwind.tokens.json
+make design-check    # lint only — runs in CI on every push
+```
+
+Under the hood that is Google's linter, no install needed:
+
+```bash
+npx -y @google/design.md lint Design.md
+npx -y @google/design.md export --format css-tailwind Design.md
+npx -y @google/design.md diff Design.md Design-v2.md
+```
+
+It checks broken token references, **contrast ratios**, orphaned tokens, unknown keys, missing typography, and canonical section order. A contrast failure fails the build, so "we'll fix accessibility later" never becomes a decision anyone gets to make.
+
+The shipped `Design.md` passes: **0 errors, 0 contrast findings.** Six `orphaned-tokens` warnings remain and are explained in the file — `border`, `borderStrong`, and `focus` (plus dark variants) exist as values but the spec's component sub-tokens (`backgroundColor`, `textColor`, `typography`, `rounded`, `padding`, `size`, `height`, `width`) have no border or outline slot, so nothing can reference them. Running the linter is what found that, and an earlier draft that *looked* conformant but wasn't.
+
+The Tailwind theme is generated from the front matter. `frontend-engineer` is forbidden from transcribing a token value into a component or hand-editing generated files — need a value that doesn't exist, add the token and regenerate. That one rule is why a devcrew UI stays consistent after twenty features.
+
+To use your own brand: edit the `colors` block, run `make design`, fix whatever the contrast rule flags. Nothing else needs to change.
 
 ## Documentation
 

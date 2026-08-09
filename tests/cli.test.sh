@@ -134,6 +134,27 @@ echo; echo "== session-meter =="
 ( cd "$P" && printf '{"tool_name":"Read","tool_input":{"file_path":"a"},"tool_response":"hello"}' | "$P/.claude/hooks/session-meter.sh" >/dev/null 2>&1 )
 has "token ledger written" "$P/.claude/state/tokens.jsonl"
 
+echo; echo "== plugin manifest schema =="
+is "agents is an array of 15 paths" "$(python3 -c 'import json;d=json.load(open("'"$KIT"'/.claude-plugin/plugin.json"));print(len(d["agents"]) if isinstance(d["agents"],list) else "not-a-list")')" "15"
+is "skills is a directory string"   "$(python3 -c 'import json;d=json.load(open("'"$KIT"'/.claude-plugin/plugin.json"));print(isinstance(d["skills"],str))')" "True"
+is "hook paths are quoted"          "$(grep -c '\\"${CLAUDE_PLUGIN_ROOT}\\"' "$KIT/.claude/hooks/hooks.json")" "6"
+is "settings paths are quoted"      "$(grep -c '\\"$CLAUDE_PROJECT_DIR\\"' "$KIT/template/settings.json")" "6"
+
+echo; echo "== design system tooling =="
+is "make design target"       "$(grep -c '^design:' "$P/Makefile")" "1"
+is "make design-check target" "$(grep -c '^design-check:' "$P/Makefile")" "1"
+is "ci runs design-check"     "$(grep -c 'ci: lint design-check' "$P/Makefile")" "1"
+is "workflow lints Design.md" "$(grep -c '@google/design.md lint' "$P/.github/workflows/ci.yml")" "1"
+is "Design.md cites the spec" "$(grep -c 'google-labs-code/design.md' "$P/Design.md")" "1"
+
+echo; echo "== design lint (network — skipped offline) =="
+if command -v npx >/dev/null 2>&1 && npx -y @google/design.md spec --rules >/dev/null 2>&1; then
+  ERRS=$(npx -y @google/design.md lint --format json "$KIT/template/Design.md" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["errors"])' 2>/dev/null || echo "?")
+  is "Design.md lints with 0 errors" "$ERRS" "0"
+else
+  echo "  - npx or network unavailable, skipped"
+fi
+
 echo; echo "== uninstall =="
 "$CLI" uninstall "$E" >/dev/null 2>&1
 hasnt "agents removed"    "$E/.claude/agents"

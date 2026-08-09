@@ -27,6 +27,7 @@ Stage owners and exit criteria: `Project-Management.md` §3. No stage is skipped
 | History | `Changelog.md` |
 | Department boards | `trackers/<dept>.md` |
 | How stories become tests | `User-Story-Testing.md` |
+| Capacity, consistency, scaling, cost | `System-Design.md` |
 | Decisions | `docs/adr/` |
 
 Reading all of them costs ~15k tokens and degrades every later turn. Read the one that answers the question in front of you.
@@ -47,6 +48,7 @@ make setup    # install dependencies, browsers, hooks
 make lint     # ruff + mypy --strict + eslint + tsc --noEmit
 make test     # pytest + vitest
 make e2e      # playwright + axe-core at 375/768/1280
+make design   # lint Design.md tokens + regenerate the Tailwind theme
 make sec      # gitleaks + bandit + pip-audit + semgrep + pnpm audit
 devcrew verify   # the full gate — required before any push
 ```

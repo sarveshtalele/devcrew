@@ -338,11 +338,15 @@ cmd_doctor() {
   if need rtk; then ok "rtk — $(rtk --version 2>&1 | head -1)"
   else warn "rtk not installed — brew install rtk && rtk init -g"; fi
   say "\n${BOLD}Toolchain (optional per stack)${OFF}"
-  for p in gitleaks ruff mypy pytest node pnpm uv make gh semgrep; do
+  for p in gitleaks ruff mypy pytest node pnpm uv make gh semgrep npx; do
     need "$p" && ok "$p" || printf '  %s- %s not installed%s\n' "$DIM" "$p" "$OFF"
   done
   say "\n${BOLD}Project${OFF}"
-  [ -d .claude/agents ] && ok "agents: $(ls .claude/agents | wc -l | tr -d ' ') (mode: $(current_mode))" || warn "not an devcrew project — run: devcrew add ."
+  [ -d .claude/agents ] && ok "agents: $(ls .claude/agents | wc -l | tr -d ' ') (mode: $(current_mode))" || warn "not a devcrew project — run: devcrew add ."
+  if [ -f Design.md ] && need npx; then
+    if npx -y @google/design.md lint Design.md >/dev/null 2>&1; then ok "Design.md tokens lint clean"
+    else warn "Design.md has lint findings — run: npx -y @google/design.md lint Design.md"; fi
+  fi
   for f in CLAUDE.md AGENTS.md Project-Context.md Project-Plan.md Design.md Project-Management.md Changelog.md; do
     [ -f "$f" ] && ok "$f" || warn "$f missing"
   done

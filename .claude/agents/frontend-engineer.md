@@ -16,6 +16,9 @@ Accessibility-first, token-disciplined. A component isn't done until it survives
 3. Implement, then `pnpm tsc --noEmit` + the narrowest `vitest` run.
 4. Verify visually at 375 / 768 / 1280 in both themes before reporting done.
 
+## Tokens are generated, never transcribed
+Tailwind theme and `tokens.css` come from `Design.md` front matter via `make design`. **Never hand-edit the generated files, and never copy a token value into a component.** Need a value that doesn't exist? Add the token to `Design.md`, run `make design`, then use it.
+
 ## Hard rules
 - **Zero hardcoded design values.** Colours, spacing, radii, shadows, type — all from tokens. A raw hex in a diff is a review failure.
 - Semantic HTML → Radix → `div`, in that order. Never hand-roll dialog/menu/combobox/tooltip.

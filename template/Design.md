@@ -1,277 +1,477 @@
 ---
-# DESIGN.md token schema — machine-readable source of truth.
-# Tailwind config and shadcn/ui theme are GENERATED from this block. Edit here, not there.
-meta:
-  name: "{{PROJECT_NAME}} Design System"
-  version: 1.0.0
-  style: modern-saas-vibrant
-  contrast: WCAG-2.2-AA
-  themes: [light, dark]
+version: alpha
+name: "{{PROJECT_NAME}} Design System"
+description: Modern SaaS, vibrant but disciplined. Light and dark as equal first-class themes, WCAG 2.2 AA throughout.
 
 colors:
-  light:
-    brand.50:  "oklch(0.97 0.02 275)"
-    brand.100: "oklch(0.94 0.04 275)"
-    brand.300: "oklch(0.80 0.12 275)"
-    brand.500: "oklch(0.62 0.21 275)"   # primary accent
-    brand.600: "oklch(0.55 0.21 275)"   # primary hover — 4.8:1 on surface
-    brand.700: "oklch(0.47 0.19 275)"   # primary active
-    accent.500: "oklch(0.70 0.19 195)"  # secondary/teal, gradient partner
-    surface:      "oklch(1 0 0)"
-    surface.sunken: "oklch(0.98 0.004 275)"
-    surface.raised: "oklch(1 0 0)"
-    border:       "oklch(0.91 0.006 275)"
-    border.strong: "oklch(0.82 0.01 275)"
-    text:         "oklch(0.22 0.02 275)"   # 14.6:1 on surface
-    text.muted:   "oklch(0.50 0.02 275)"   # 4.9:1 on surface
-    text.onBrand: "oklch(1 0 0)"           # 4.9:1 on brand.600
-    success: "oklch(0.62 0.15 150)"
-    warning: "oklch(0.72 0.16 75)"
-    danger:  "oklch(0.58 0.21 25)"
-    info:    "oklch(0.62 0.15 240)"
-    focus:   "oklch(0.62 0.21 275)"
-  dark:
-    brand.50:  "oklch(0.24 0.05 275)"
-    brand.100: "oklch(0.30 0.07 275)"
-    brand.300: "oklch(0.55 0.16 275)"
-    brand.500: "oklch(0.72 0.17 275)"   # lifted for dark surfaces
-    brand.600: "oklch(0.78 0.15 275)"
-    brand.700: "oklch(0.84 0.12 275)"
-    accent.500: "oklch(0.78 0.15 195)"
-    surface:      "oklch(0.19 0.015 275)"
-    surface.sunken: "oklch(0.15 0.015 275)"
-    surface.raised: "oklch(0.24 0.018 275)"
-    border:       "oklch(0.32 0.02 275)"
-    border.strong: "oklch(0.42 0.02 275)"
-    text:         "oklch(0.97 0.005 275)"  # 15.1:1 on surface
-    text.muted:   "oklch(0.74 0.015 275)"  # 6.2:1 on surface
-    text.onBrand: "oklch(0.17 0.02 275)"   # 8.4:1 on brand.500
-    success: "oklch(0.75 0.15 150)"
-    warning: "oklch(0.82 0.15 75)"
-    danger:  "oklch(0.71 0.18 25)"
-    info:    "oklch(0.74 0.14 240)"
-    focus:   "oklch(0.78 0.15 275)"
+  # --- light theme (default) ---
+  primary: "#5B2BD9"          # brand violet; white text on it clears AA
+  primaryHover: "#4A21B5"
+  primaryActive: "#3A1A8F"
+  onPrimary: "#FFFFFF"
+  accent: "#0B7C87"           # teal; the far stop of the brand gradient
+  onAccent: "#FFFFFF"
+  surface: "#FFFFFF"
+  surfaceSunken: "#F7F7FB"
+  surfaceRaised: "#FFFFFF"
+  border: "#E5E5EF"
+  borderStrong: "#CFCFDE"
+  text: "#1A1A24"
+  textMuted: "#5B5B70"
+  success: "#17803D"
+  warning: "#92610A"
+  danger: "#C02626"
+  info: "#1D4FD8"
+  focus: "#5B2BD9"
 
-gradients:
-  brand:   "linear-gradient(135deg, {colors.brand.500} 0%, {colors.accent.500} 100%)"
-  surface: "linear-gradient(180deg, {colors.surface.raised} 0%, {colors.surface} 100%)"
+  # --- dark theme ---
+  # The token schema has no theme axis, so dark variants are named tokens.
+  # Lightness is lifted rather than surfaces darkened further: saturated hues
+  # vibrate against near-black backgrounds.
+  primaryDark: "#A78BFA"
+  primaryHoverDark: "#BCA5FB"
+  primaryActiveDark: "#C9BAFC"
+  onPrimaryDark: "#14141C"
+  accentDark: "#5EEAD4"
+  onAccentDark: "#14141C"
+  surfaceDark: "#14141C"
+  surfaceSunkenDark: "#0F0F16"
+  surfaceRaisedDark: "#1D1D28"
+  borderDark: "#33334A"
+  borderStrongDark: "#4A4A66"
+  textDark: "#F5F5FA"
+  textMutedDark: "#B4B4C8"
+  successDark: "#4ADE80"
+  warningDark: "#FCD34D"
+  dangerDark: "#FCA5A5"
+  infoDark: "#93C5FD"
+  focusDark: "#A78BFA"
 
 typography:
-  fontFamily.sans: "Inter var, Inter, ui-sans-serif, system-ui, sans-serif"
-  fontFamily.mono: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace"
-  features: "'cv11', 'ss01', 'tnum' 0"          # tabular nums enabled per-component
-  display:  { size: "3rem",    weight: 700, lineHeight: 1.1,  letterSpacing: "-0.03em" }
-  h1:       { size: "2.25rem", weight: 700, lineHeight: 1.15, letterSpacing: "-0.02em" }
-  h2:       { size: "1.75rem", weight: 650, lineHeight: 1.25, letterSpacing: "-0.015em" }
-  h3:       { size: "1.375rem",weight: 600, lineHeight: 1.3,  letterSpacing: "-0.01em" }
-  body:     { size: "1rem",    weight: 400, lineHeight: 1.6,  letterSpacing: "0" }
-  bodySm:   { size: "0.875rem",weight: 400, lineHeight: 1.55, letterSpacing: "0" }
-  label:    { size: "0.875rem",weight: 550, lineHeight: 1.4,  letterSpacing: "0" }
-  caption:  { size: "0.75rem", weight: 450, lineHeight: 1.45, letterSpacing: "0.01em" }
-  code:     { size: "0.875rem",weight: 450, lineHeight: 1.6,  family: "{typography.fontFamily.mono}" }
+  display:
+    fontFamily: Inter
+    fontSize: 48px
+    fontWeight: 700
+    lineHeight: 1.1
+    letterSpacing: -0.03em
+    fontFeature: "'cv11', 'ss01'"
+  h1:
+    fontFamily: Inter
+    fontSize: 36px
+    fontWeight: 700
+    lineHeight: 1.15
+    letterSpacing: -0.02em
+  h2:
+    fontFamily: Inter
+    fontSize: 28px
+    fontWeight: 650
+    lineHeight: 1.25
+    letterSpacing: -0.015em
+  h3:
+    fontFamily: Inter
+    fontSize: 22px
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: -0.01em
+  body:
+    fontFamily: Inter
+    fontSize: 16px
+    fontWeight: 400
+    lineHeight: 1.6
+    letterSpacing: 0em
+  bodySmall:
+    fontFamily: Inter
+    fontSize: 14px
+    fontWeight: 400
+    lineHeight: 1.55
+    letterSpacing: 0em
+  label:
+    fontFamily: Inter
+    fontSize: 14px
+    fontWeight: 550
+    lineHeight: 1.4
+    letterSpacing: 0em
+  caption:
+    fontFamily: Inter
+    fontSize: 12px
+    fontWeight: 450
+    lineHeight: 1.45
+    letterSpacing: 0.01em
+  numeric:
+    fontFamily: Inter
+    fontSize: 14px
+    fontWeight: 450
+    lineHeight: 1.5
+    letterSpacing: 0em
+    fontFeature: "'tnum' 1"
+  code:
+    fontFamily: JetBrains Mono
+    fontSize: 14px
+    fontWeight: 450
+    lineHeight: 1.6
+    letterSpacing: 0em
 
-spacing:      # 4px base, used for padding, gap, margin
-  0: "0"
-  1: "0.25rem"
-  2: "0.5rem"
-  3: "0.75rem"
-  4: "1rem"
-  6: "1.5rem"
-  8: "2rem"
-  12: "3rem"
-  16: "4rem"
-  24: "6rem"
+spacing:
+  none: 0px
+  xs: 4px
+  sm: 8px
+  md: 16px
+  lg: 24px
+  xl: 32px
+  2xl: 48px
+  3xl: 64px
+  4xl: 96px
 
 rounded:
-  none: "0"
-  sm:   "0.5rem"
-  md:   "0.75rem"
-  lg:   "1rem"
-  xl:   "1.5rem"
-  full: "9999px"
-
-elevation:
-  0: "none"
-  1: "0 1px 2px oklch(0.22 0.02 275 / 0.06), 0 1px 3px oklch(0.22 0.02 275 / 0.10)"
-  2: "0 4px 8px oklch(0.22 0.02 275 / 0.06), 0 2px 4px oklch(0.22 0.02 275 / 0.08)"
-  3: "0 12px 24px oklch(0.22 0.02 275 / 0.10), 0 4px 8px oklch(0.22 0.02 275 / 0.06)"
-  4: "0 24px 48px oklch(0.22 0.02 275 / 0.14), 0 8px 16px oklch(0.22 0.02 275 / 0.08)"
-  focusRing: "0 0 0 2px {colors.surface}, 0 0 0 4px {colors.focus}"
-
-motion:
-  duration.fast: "120ms"
-  duration.base: "200ms"
-  duration.slow: "320ms"
-  ease.standard: "cubic-bezier(0.2, 0, 0, 1)"
-  ease.emphasized: "cubic-bezier(0.3, 0, 0, 1)"
-
-breakpoints:
-  mobile: "375px"
-  tablet: "768px"
-  desktop: "1280px"
-  wide: "1536px"
+  none: 0px
+  sm: 8px
+  md: 12px
+  lg: 16px
+  xl: 24px
+  full: 9999px
 
 components:
-  button.primary:
-    background: "{gradients.brand}"
-    textColor: "{colors.text.onBrand}"
+  # Valid sub-tokens are fixed by the spec: backgroundColor, textColor,
+  # typography, rounded, padding, size, height, width. Anything the schema
+  # cannot model — borders, focus rings, shadows — is specified in the prose
+  # below and applied by hand.
+  buttonPrimary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.onPrimary}"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
-    padding: "{spacing.3} {spacing.6}"
-    minSize: "44px"
-    elevation: "{elevation.1}"
-  button.primary.hover:
-    background: "{colors.brand.600}"
-    elevation: "{elevation.2}"
-  button.primary.active:
-    background: "{colors.brand.700}"
-    elevation: "{elevation.0}"
-  button.primary.focusVisible:
-    elevation: "{elevation.focusRing}"
-  button.primary.disabled:
-    background: "{colors.border}"
-    textColor: "{colors.text.muted}"
-    elevation: "{elevation.0}"
-  button.secondary:
-    background: "{colors.surface}"
+    padding: "{spacing.md}"
+    height: 44px
+  buttonPrimaryHover:
+    backgroundColor: "{colors.primaryHover}"
+    textColor: "{colors.onPrimary}"
+  buttonPrimaryActive:
+    backgroundColor: "{colors.primaryActive}"
+    textColor: "{colors.onPrimary}"
+  buttonPrimaryDisabled:
+    backgroundColor: "{colors.surfaceSunken}"
+    textColor: "{colors.textMuted}"
+  buttonPrimaryDark:
+    backgroundColor: "{colors.primaryDark}"
+    textColor: "{colors.onPrimaryDark}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.md}"
+    height: 44px
+  buttonPrimaryHoverDark:
+    backgroundColor: "{colors.primaryHoverDark}"
+    textColor: "{colors.onPrimaryDark}"
+  buttonPrimaryActiveDark:
+    backgroundColor: "{colors.primaryActiveDark}"
+    textColor: "{colors.onPrimaryDark}"
+  buttonSecondary:
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
-    border: "1px solid {colors.border.strong}"
+    typography: "{typography.label}"
     rounded: "{rounded.md}"
-    padding: "{spacing.3} {spacing.6}"
-  button.ghost:
-    background: "transparent"
-    textColor: "{colors.text.muted}"
+    padding: "{spacing.md}"
+    height: 44px
+  buttonSecondaryDark:
+    backgroundColor: "{colors.surfaceRaisedDark}"
+    textColor: "{colors.textDark}"
+    typography: "{typography.label}"
     rounded: "{rounded.md}"
-    padding: "{spacing.2} {spacing.4}"
-  button.destructive:
-    background: "{colors.danger}"
-    textColor: "{colors.text.onBrand}"
+    padding: "{spacing.md}"
+    height: 44px
+  buttonGhost:
+    backgroundColor: "{colors.surfaceSunken}"
+    textColor: "{colors.textMuted}"
+    typography: "{typography.label}"
     rounded: "{rounded.md}"
-    padding: "{spacing.3} {spacing.6}"
+    padding: "{spacing.sm}"
+  buttonGhostDark:
+    backgroundColor: "{colors.surfaceSunkenDark}"
+    textColor: "{colors.textMutedDark}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.sm}"
+  buttonDestructive:
+    backgroundColor: "{colors.danger}"
+    textColor: "{colors.onPrimary}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.md}"
+    height: 44px
+  buttonDestructiveDark:
+    backgroundColor: "{colors.dangerDark}"
+    textColor: "{colors.onPrimaryDark}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.md}"
+    height: 44px
+  buttonAccent:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.onAccent}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.md}"
+    height: 44px
+  buttonAccentDark:
+    backgroundColor: "{colors.accentDark}"
+    textColor: "{colors.onAccentDark}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.md}"
+    height: 44px
   input:
-    background: "{colors.surface}"
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
-    border: "1px solid {colors.border.strong}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.3} {spacing.4}"
-    minSize: "44px"
     typography: "{typography.body}"
-  input.focusVisible:
-    border: "1px solid {colors.focus}"
-    elevation: "{elevation.focusRing}"
-  input.invalid:
-    border: "1px solid {colors.danger}"
-  card:
-    background: "{colors.surface.raised}"
-    border: "1px solid {colors.border}"
-    rounded: "{rounded.lg}"
-    padding: "{spacing.6}"
-    elevation: "{elevation.1}"
-  dialog:
-    background: "{colors.surface.raised}"
-    rounded: "{rounded.xl}"
-    padding: "{spacing.8}"
-    elevation: "{elevation.4}"
-    maxWidth: "32rem"
-  toast:
-    background: "{colors.surface.raised}"
     rounded: "{rounded.md}"
-    padding: "{spacing.4}"
-    elevation: "{elevation.3}"
+    padding: "{spacing.sm}"
+    height: 44px
+  inputDark:
+    backgroundColor: "{colors.surfaceSunkenDark}"
+    textColor: "{colors.textDark}"
+    typography: "{typography.body}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.sm}"
+    height: 44px
+  card:
+    backgroundColor: "{colors.surfaceRaised}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.lg}"
+    padding: "{spacing.lg}"
+  cardDark:
+    backgroundColor: "{colors.surfaceRaisedDark}"
+    textColor: "{colors.textDark}"
+    rounded: "{rounded.lg}"
+    padding: "{spacing.lg}"
+  dialog:
+    backgroundColor: "{colors.surfaceRaised}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.xl}"
+    padding: "{spacing.xl}"
+    width: 512px
+  dialogDark:
+    backgroundColor: "{colors.surfaceRaisedDark}"
+    textColor: "{colors.textDark}"
+    rounded: "{rounded.xl}"
+    padding: "{spacing.xl}"
+    width: 512px
+  toast:
+    backgroundColor: "{colors.surfaceRaised}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.md}"
+  toastDark:
+    backgroundColor: "{colors.surfaceRaisedDark}"
+    textColor: "{colors.textDark}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.md}"
   badge:
+    backgroundColor: "{colors.surfaceSunken}"
+    textColor: "{colors.text}"
     typography: "{typography.caption}"
     rounded: "{rounded.full}"
-    padding: "{spacing.1} {spacing.3}"
-  table.cell:
-    typography: "{typography.bodySm}"
-    padding: "{spacing.3} {spacing.4}"
-    border: "1px solid {colors.border}"
+    padding: "{spacing.xs}"
+  badgeSuccess:
+    backgroundColor: "{colors.success}"
+    textColor: "{colors.onPrimary}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.full}"
+    padding: "{spacing.xs}"
+  badgeWarning:
+    backgroundColor: "{colors.warning}"
+    textColor: "{colors.onPrimary}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.full}"
+    padding: "{spacing.xs}"
+  badgeDanger:
+    backgroundColor: "{colors.danger}"
+    textColor: "{colors.onPrimary}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.full}"
+    padding: "{spacing.xs}"
+  badgeInfo:
+    backgroundColor: "{colors.info}"
+    textColor: "{colors.onPrimary}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.full}"
+    padding: "{spacing.xs}"
+  badgeSuccessDark:
+    backgroundColor: "{colors.successDark}"
+    textColor: "{colors.onPrimaryDark}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.full}"
+    padding: "{spacing.xs}"
+  badgeWarningDark:
+    backgroundColor: "{colors.warningDark}"
+    textColor: "{colors.onPrimaryDark}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.full}"
+    padding: "{spacing.xs}"
+  badgeDangerDark:
+    backgroundColor: "{colors.dangerDark}"
+    textColor: "{colors.onPrimaryDark}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.full}"
+    padding: "{spacing.xs}"
+  badgeInfoDark:
+    backgroundColor: "{colors.infoDark}"
+    textColor: "{colors.onPrimaryDark}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.full}"
+    padding: "{spacing.xs}"
+  tableCell:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    typography: "{typography.numeric}"
+    padding: "{spacing.sm}"
+  tableCellDark:
+    backgroundColor: "{colors.surfaceDark}"
+    textColor: "{colors.textDark}"
+    typography: "{typography.numeric}"
+    padding: "{spacing.sm}"
+  codeBlock:
+    backgroundColor: "{colors.surfaceSunken}"
+    textColor: "{colors.text}"
+    typography: "{typography.code}"
+    rounded: "{rounded.sm}"
+    padding: "{spacing.md}"
+  codeBlockDark:
+    backgroundColor: "{colors.surfaceSunkenDark}"
+    textColor: "{colors.textDark}"
+    typography: "{typography.code}"
+    rounded: "{rounded.sm}"
+    padding: "{spacing.md}"
+  skeleton:
+    backgroundColor: "{colors.surfaceSunken}"
+    rounded: "{rounded.sm}"
+  skeletonDark:
+    backgroundColor: "{colors.surfaceRaisedDark}"
+    rounded: "{rounded.sm}"
 ---
 
 # Design System
 
+> **Format:** [DESIGN.md by Google Labs](https://github.com/google-labs-code/design.md) — the YAML front matter above carries machine-readable tokens, the prose below carries the rationale. Agents read both; the Tailwind theme is generated from the front matter and never hand-edited.
+>
+> ```bash
+> make design          # lint, then export tokens.css + tailwind.tokens.json
+> make design-check    # lint only — this is what CI runs
+> ```
+>
+> Change a value **here**, then regenerate. The section order below is canonical and the linter enforces it, along with contrast ratios and token references. Values that the token schema does not model — elevation, motion, breakpoints, gradients — live in the prose sections below and are applied by hand.
+
 ## Overview
 
-Modern SaaS, vibrant but disciplined. The product should feel fast, current, and confident — a saturated violet→teal brand gradient used sparingly against calm neutral surfaces. Energy comes from **one** gradient, generous radii, and soft layered shadows; everything else stays quiet so the data stays readable.
+Modern SaaS, vibrant but disciplined. The product should feel fast, current, and confident: a saturated violet→teal brand gradient used sparingly against calm neutral surfaces. Energy comes from **one** gradient, generous radii, and soft layered shadows; everything else stays quiet so the data stays readable.
 
 The rule that keeps "vibrant" from becoming "loud": **colour is a signal, not decoration.** If a surface is coloured, it is because something on it is actionable or needs attention. A screen has at most one gradient element.
 
-Light and dark are equal first-class themes, not an inversion. Every token exists in both. Ship neither until both pass contrast.
+Light and dark are equal first-class themes, not an inversion. Every colour has a `…Dark` counterpart. Ship neither until both pass contrast.
 
 ## Colors
 
-- `brand.500` is the identity colour; `brand.600` is the *interactive* colour, because `500` on white does not clear 4.5:1 for text. **Never put text on `brand.500` in light mode.**
-- `accent.500` (teal) exists almost exclusively as the far stop of `gradients.brand`. It is not a second brand colour and must not be used to colour standalone controls.
+- `primary` is both the identity and the interactive colour, chosen dark enough that `onPrimary` white text clears 4.5:1. Do not lighten it and keep white text.
+- `accent` exists almost exclusively as the far stop of the brand gradient. It is not a second brand colour and must not be used to colour standalone controls.
 - Semantic colours (`success` `warning` `danger` `info`) never carry meaning alone — always pair with an icon and text. Colour-blind users must lose nothing.
-- Dark mode lifts brand lightness (`0.62 → 0.72`) rather than darkening surfaces further: saturated hues at low lightness vibrate against dark backgrounds.
-- **Contrast floor (enforced by the linter):** body text ≥ 4.5:1, large text (≥ 18.66px bold / 24px) ≥ 3:1, UI borders and icons ≥ 3:1, focus ring ≥ 3:1 against **both** the component and the surrounding surface.
+- Dark mode **lifts lightness** (`primary #5B2BD9 → primaryDark #A78BFA`) rather than darkening surfaces further, and flips `onPrimary` to near-black. Saturated hues at low lightness vibrate against dark backgrounds.
+- **Contrast floors, checked by the linter, not by eye:** body text ≥ 4.5:1, large text (≥ 24px, or 18.66px bold) ≥ 3:1, UI borders and icons ≥ 3:1, focus ring ≥ 3:1 against both the component and the surrounding surface.
+
+`border`, `borderStrong`, `focus`, and their dark counterparts are defined here but cannot be referenced from a component block — the spec's component sub-tokens are `backgroundColor`, `textColor`, `typography`, `rounded`, `padding`, `size`, `height`, `width`, with no border or outline slot. The linter reports them as orphaned; that is expected, and they are applied through the CSS in this document rather than through the token export.
+
+**Gradient** (not a token — the schema has no gradient type; apply by hand):
+
+```css
+--gradient-brand: linear-gradient(135deg, #5B2BD9 0%, #0B7C87 100%);
+--gradient-brand-dark: linear-gradient(135deg, #A78BFA 0%, #5EEAD4 100%);
+```
+
+Never place body text on the gradient. One gradient element per screen.
 
 ## Typography
 
 Inter for everything, JetBrains Mono for code, IDs, and anything the user might copy. One family keeps the vertical rhythm predictable and removes a whole class of layout bugs.
 
-- Scale is fixed at 8 steps. If you need a size that isn't in the scale, you need a different component.
+- The scale is fixed at nine steps. If you need a size that isn't in it, you need a different component.
 - Negative letter-spacing tightens as size grows (`display` −0.03em → `body` 0). This is what makes large headings look designed rather than merely large.
 - Line length caps at **72ch** for prose, **48ch** in cards.
-- Numbers in tables, prices, and metrics use tabular figures (`font-variant-numeric: tabular-nums`) so columns don't jitter on update.
-- Weight, not colour, carries hierarchy. `text.muted` is for genuinely secondary content, never for "smaller heading".
+- Use the `numeric` token for tables, prices, and metrics — it enables tabular figures so columns don't jitter on update.
+- Weight, not colour, carries hierarchy. `textMuted` is for genuinely secondary content, never for "smaller heading".
 
 ## Layout
 
 - 4px base grid. Every padding, gap, and margin comes from `spacing`. No arbitrary `13px`.
-- 12-column fluid grid, `spacing.6` gutters desktop, `spacing.4` mobile. Page max-width 1280px, content column 1120px.
-- **Vertical rhythm:** `spacing.4` inside a component, `spacing.6` between components, `spacing.12` between sections.
-- Mobile-first. Three breakpoints, and layout must be correct at 375 / 768 / 1280 — the same three viewports the Playwright suite runs.
-- Touch targets ≥ 44×44px at every breakpoint, including desktop (people use touchscreens on desktop).
-- Never hide content to fit a small screen — reflow, stack, or progressively disclose it.
+- 12-column fluid grid, `lg` gutters on desktop, `md` on mobile. Page max-width 1280px, content column 1120px.
+- **Vertical rhythm:** `md` inside a component, `lg` between components, `2xl` between sections.
+- Touch targets ≥ 44×44px at every breakpoint, including desktop — people use touchscreens on desktop.
+- Never hide content to fit a small screen. Reflow, stack, or progressively disclose it.
+
+**Breakpoints** (not tokens — applied in the Tailwind config):
+
+| Name | Width | Also the Playwright viewport |
+|---|---|---|
+| mobile | 375px | ✓ |
+| tablet | 768px | ✓ |
+| desktop | 1280px | ✓ |
+| wide | 1536px | |
+
+Mobile-first. Layout must be correct at the three viewports the E2E suite runs.
 
 ## Elevation & Depth
 
-Five levels, and each has one job:
+Five levels, each with one job. Not tokens — the schema has no shadow type, so these are applied as CSS custom properties.
 
-| Level | Use |
-|---|---|
-| 0 | flush content, pressed states |
-| 1 | cards, resting buttons |
-| 2 | hover on an interactive surface |
-| 3 | popovers, dropdowns, toasts |
-| 4 | modals, command palette |
+| Level | Use | Value |
+|---|---|---|
+| 0 | flush content, pressed states | `none` |
+| 1 | cards, resting buttons | `0 1px 2px rgb(26 26 36 / 0.06), 0 1px 3px rgb(26 26 36 / 0.10)` |
+| 2 | hover on an interactive surface | `0 4px 8px rgb(26 26 36 / 0.06), 0 2px 4px rgb(26 26 36 / 0.08)` |
+| 3 | popovers, dropdowns, toasts | `0 12px 24px rgb(26 26 36 / 0.10), 0 4px 8px rgb(26 26 36 / 0.06)` |
+| 4 | modals, command palette | `0 24px 48px rgb(26 26 36 / 0.14), 0 8px 16px rgb(26 26 36 / 0.08)` |
+| focus ring | every focusable element | `0 0 0 2px var(--surface), 0 0 0 4px var(--focus)` |
 
-Shadows are tinted with the text hue, never pure black — pure black shadows read as dirt on coloured surfaces. In dark mode, shadows do little work; depth comes from `surface.raised` being *lighter* than `surface`. Do not stack elevations: a card inside a modal stays at 0.
+Shadows are tinted with the text hue, never pure black — pure black shadows read as dirt on coloured surfaces. In dark mode shadows do little work; depth comes from `surfaceRaisedDark` being *lighter* than `surfaceDark`. Do not stack elevations: a card inside a modal stays at 0.
+
+**Motion** (not tokens): fast 120ms, base 200ms, slow 320ms; standard easing `cubic-bezier(0.2, 0, 0, 1)`. Animate `transform` and `opacity` only, and respect `prefers-reduced-motion`.
 
 ## Shapes
 
-- Radii step with size: controls `md` (12px), cards `lg` (16px), modals `xl` (24px), pills/avatars `full`.
-- **Nested radius rule:** inner radius = outer radius − padding. A `lg` card with `spacing.6` padding holds `md` children. Concentric corners are the tell that separates a designed UI from an assembled one.
-- Borders are 1px `border` for structure, `border.strong` for anything interactive. Border *and* elevation together only for level 3+.
+- Radii step with size: controls `md` (12px), cards `lg` (16px), modals `xl` (24px), pills and avatars `full`.
+- **Nested radius rule:** inner radius = outer radius − padding. A `lg` card with `lg` padding holds `md` children. Concentric corners are the tell that separates a designed UI from an assembled one.
+- Borders are 1px `border` for structure, `borderStrong` for anything interactive. Border *and* elevation together only at level 3+.
 
 ## Components
 
 Built on shadcn/ui (Radix primitives, source-owned in `src/components/ui/`). Radix gives correct focus management, ARIA, and keyboard behaviour for free — **do not** hand-roll a dialog, combobox, or menu.
 
 Rules for every component:
+
 - Ships with all states: default, hover, active, **focus-visible**, disabled, loading, error, empty.
-- Focus ring is `elevation.focusRing` on every focusable element. Never `outline: none` without an equivalent replacement.
-- Loading uses skeletons shaped like the eventual content, not spinners — spinners only for actions under 1s.
+- Focus ring on every focusable element. Never `outline: none` without an equivalent replacement.
+- Loading uses skeletons shaped like the eventual content, not spinners. Spinners only for actions under 1s.
 - Empty states explain what goes here and give the action that fills it.
-- Errors say what happened and what to do next, next to the field that caused it, and are announced via `aria-live`.
+- Errors say what happened and what to do next, next to the field that caused it, announced via `aria-live`.
 - Destructive actions require confirmation naming the exact object being destroyed.
-- Any component rendering PII/PHI/CHD must mask by default (`•••• 4242`) with explicit reveal, and must never be included in analytics or session-replay capture.
+- Any component rendering PII, PHI, or cardholder data masks by default (`•••• 4242`) with explicit reveal, and is excluded from analytics and session replay.
+
+Dark-mode component values are the same token names with the `Dark` suffix — `buttonPrimary` uses `{colors.primary}` in light and `{colors.primaryDark}` in dark. The generated theme wires both; components never branch on theme themselves.
 
 ## Do's and Don'ts
 
 **Do**
-- Take every value from the token block; generate Tailwind config from it.
-- Test both themes and all three viewports before calling a UI change done.
-- Animate `transform` and `opacity` only, with `motion.duration.base`, and respect `prefers-reduced-motion`.
-- Use semantic HTML first — Radix second, `div` last.
+
+- Take every value from the tokens above and generate the Tailwind config with `make design`.
+- Run `make design-check` before calling a UI change done — contrast is arithmetic, not opinion.
+- Test both themes and all three viewports.
+- Animate `transform` and `opacity` only, and respect `prefers-reduced-motion`.
+- Use semantic HTML first, Radix second, `div` last.
 - Label every icon-only control with `aria-label`.
 
 **Don't**
-- Don't add a colour, size, radius, or shadow that isn't in the tokens. Extend the token block via PR instead.
+
+- Don't add a colour, size, radius, or shadow that isn't defined here. Extend the front matter in a PR instead.
 - Don't use more than one gradient per screen, or a gradient behind body text.
 - Don't convey state with colour alone.
 - Don't use placeholder text as a label — it disappears exactly when the user needs it.
 - Don't put disabled buttons behind unexplained rules; say what unlocks them.
 - Don't nest elevations, or mix `md` and `lg` radii on sibling elements.
-- Don't ship a component without a focus-visible state — axe won't catch it, reviewers must.
+- Don't ship a component without a focus-visible state. axe won't catch it; reviewers must.
+- Don't reorder the sections of this file. The order is canonical and the linter enforces it.

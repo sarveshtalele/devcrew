@@ -2,6 +2,25 @@
 
 All notable changes to devcrew. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning: [SemVer](https://semver.org/).
 
+## [1.2.0] - 2026-08-09
+
+### Added
+- `QUICKSTART.md` — ten minutes from nothing to a shipped feature, with a full `/caveman` command reference
+- `template/System-Design.md` — end-to-end design principles (capacity, data model, API contract, boundaries, consistency, failure, scaling, security, observability, cost) plus a complete **zero-cost stack** table with each free tier's ceiling
+- `/scout` and `/compact-docs` skills — delegated codebase search and standing-document compaction, the two largest token levers
+- Brownfield adoption: `devcrew add` scans a repo once into `.devcrew/project-facts.json` so agents read the stack instead of rediscovering it
+- `/project-init` now interviews on budget and system design, with a free-tier branch that records ceilings and migration paths as ADR-002
+- **Design system tooling**: `make design` / `make design-check` wrap Google Labs' `@google/design.md` linter and exporters. Contrast ratios, broken token references, and section order are checked in CI and by `devcrew doctor`
+- README comparison against Spec Kit and OpenSpec, including how to compose them
+
+### Fixed
+- **`Design.md` did not conform to the DESIGN.md schema it claimed to follow.** Running Google's linter against it reported 29 errors and 224 warnings: colours were nested under `light`/`dark` keys the schema has no concept of, and `gradients`, `elevation`, `motion`, and `breakpoints` were token-shaped keys the exporter silently ignores. Rewritten to the real schema — flat semantic colours with `…Dark` counterparts, the closed set of component sub-tokens, and everything unmodellable moved into prose. Now lints at **0 errors, 0 contrast findings**
+- A disabled-button pairing at 4.29:1, below AA — found by the contrast rule, not by eye
+- **Plugin manifest did not follow the documented schema** — `agents` must be an array of paths, not a directory string; added `displayName`
+- **Hook commands did not quote `${CLAUDE_PLUGIN_ROOT}` / `$CLAUDE_PROJECT_DIR`**, which breaks on any path containing a space
+- `token-report` skill now declares `allowed-tools`
+- Grammar in a `devcrew doctor` warning
+
 ## [1.1.0] - 2026-08-09
 
 ### Changed

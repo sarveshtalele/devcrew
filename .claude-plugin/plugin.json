@@ -1,7 +1,8 @@
 {
   "name": "devcrew",
-  "description": "A complete, free SDLC delivery system for AI coding agents: 15 department subagents, a 15-stage gated pipeline, agile trackers, and deterministic security/compliance/token hooks.",
+  "displayName": "devcrew \u2014 SDLC delivery system",
   "version": "1.0.0",
+  "description": "A complete, free SDLC delivery system for AI coding agents: 15 department subagents, a 15-stage gated pipeline, agile trackers, and deterministic security/compliance/token hooks.",
   "author": {
     "name": "Sarvesh Talele",
     "url": "https://github.com/sarveshtalele"
@@ -18,7 +19,23 @@
     "agile",
     "token-optimization"
   ],
-  "agents": "./.claude/agents",
-  "skills": "./.claude/skills",
+  "agents": [
+    "./.claude/agents/architect.md",
+    "./.claude/agents/backend-engineer.md",
+    "./.claude/agents/code-reviewer.md",
+    "./.claude/agents/compliance-officer.md",
+    "./.claude/agents/devops-engineer.md",
+    "./.claude/agents/e2e-automation.md",
+    "./.claude/agents/frontend-engineer.md",
+    "./.claude/agents/orchestrator.md",
+    "./.claude/agents/product-manager.md",
+    "./.claude/agents/qa-engineer.md",
+    "./.claude/agents/release-manager.md",
+    "./.claude/agents/security-engineer.md",
+    "./.claude/agents/sre-observability.md",
+    "./.claude/agents/tech-lead.md",
+    "./.claude/agents/ux-designer.md"
+  ],
+  "skills": "./.claude/skills/",
   "hooks": "./.claude/hooks/hooks.json"
 }

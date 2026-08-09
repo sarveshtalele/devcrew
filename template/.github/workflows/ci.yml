@@ -22,6 +22,8 @@ jobs:
       - run: uv sync --locked
       - run: pnpm install --frozen-lockfile
       - run: make lint
+      - name: Design tokens (contrast, broken refs, section order)
+        run: npx -y @google/design.md lint Design.md
 
   test:
     needs: lint

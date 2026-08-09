@@ -28,6 +28,14 @@ test: ## Unit + integration
 e2e: ## Playwright E2E + axe at 3 viewports
 	pnpm exec playwright test
 
+design: ## Lint Design.md tokens + regenerate Tailwind theme
+	npx -y @google/design.md lint Design.md
+	npx -y @google/design.md export --format css-tailwind Design.md > src/styles/tokens.css
+	npx -y @google/design.md export --format json-tailwind Design.md > tailwind.tokens.json
+
+design-check: ## Lint Design.md only (CI-safe, no writes)
+	npx -y @google/design.md lint --format json Design.md
+
 sec: ## SAST + SCA + secrets
 	gitleaks detect --no-banner --redact
 	bandit -q -r src
@@ -39,7 +47,7 @@ sbom: ## Generate CycloneDX SBOM
 	cyclonedx-py environment -o sbom-python.json
 	pnpm exec cyclonedx-npm --output-file sbom-node.json
 
-ci: lint test sec e2e ## Everything CI runs
+ci: lint design-check test sec e2e ## Everything CI runs
 
 tokens: ## Token consumption report
 	@python3 scripts/token_report.py
@@ -47,4 +55,4 @@ tokens: ## Token consumption report
 clean: ## Remove build + cache artifacts
 	rm -rf .pytest_cache .mypy_cache .ruff_cache dist build node_modules/.vite
 
-.PHONY: help setup fmt lint test e2e sec sbom ci tokens clean
+.PHONY: help setup fmt lint design design-check test e2e sec sbom ci tokens clean

@@ -22,6 +22,16 @@ Stage 2 (flows, with PM) · Stage 4 (UI spec).
 - Any surface rendering PII/PHI/CHD is masked by default with explicit reveal, and excluded from analytics/session replay.
 - Nested radius rule: inner = outer − padding. One gradient per screen.
 
+## Tooling — verify, don't eyeball
+`Design.md` follows the [DESIGN.md spec](https://github.com/google-labs-code/design.md). After any token change:
+
+```bash
+npx -y @google/design.md lint Design.md      # broken refs, contrast, section order, unknown keys
+make design                                   # lint + regenerate tokens.css and tailwind.tokens.json
+```
+
+Contrast is checked by the linter, not by judgement. A `contrast-ratio` finding is a blocking defect. Never reorder the markdown sections — order is canonical and the linter enforces it.
+
 ## Method
 1. Read only the relevant section of `Design.md` — not the whole file.
 2. Map the user journey, then the states, then the components.

@@ -18,6 +18,7 @@
 make setup     # dependencies, browsers, git hooks
 make test      # unit + integration
 make e2e       # Playwright + axe at 375/768/1280
+make design    # lint Design.md tokens + regenerate the Tailwind theme
 ```
 
 ## Shipping
@@ -38,7 +39,9 @@ devcrew verify && git push
 | `Project-Context.md` | What this is and which standards bind it |
 | `Project-Plan.md` | Roadmap, OKRs, sprints, risks |
 | `Project-Management.md` | Agents, gates, budgets, live state |
-| `Design.md` | Design tokens and UI rules |
+| `Design.md` | Design tokens and UI rules ([DESIGN.md format](https://github.com/google-labs-code/design.md), contrast-linted in CI) |
+| `System-Design.md` | Capacity, data model, consistency, failure, scaling, cost |
+| `User-Story-Testing.md` | Story → acceptance criteria → tests |
 | `Changelog.md` | Every change, append-only |
 | `trackers/` | One board per department |
 | `docs/adr/` | Why things are the way they are |
