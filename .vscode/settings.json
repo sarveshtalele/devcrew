@@ -1,0 +1,7 @@
+{
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "[shellscript]": { "editor.tabSize": 2 },
+  "shellcheck.enable": true
+}

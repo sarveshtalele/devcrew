@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Last deterministic gate before code leaves the machine.
+set -euo pipefail
+ROOT=$(git rev-parse --show-toplevel)
+STAMP="$ROOT/.devcrew/verify-ok"
+
+if [ ! -f "$STAMP" ]; then
+  echo "pre-push: no successful verification on record. Run: devcrew verify" >&2
+  exit 1
+fi
+if find "$ROOT/src" "$ROOT/tests" -type f -newer "$STAMP" 2>/dev/null | grep -q .; then
+  echo "pre-push: source changed since the last successful verification. Run: devcrew verify" >&2
+  exit 1
+fi
+echo "pre-push: verification stamp is current ($(cat "$STAMP"))."
+exit 0

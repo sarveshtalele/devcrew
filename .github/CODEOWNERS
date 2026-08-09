@@ -1,0 +1,10 @@
+# Default owners for everything.
+*                       @sarveshtalele
+
+# Security-critical paths need a security reviewer.
+/.claude/hooks/         @sarveshtalele
+/template/githooks/     @sarveshtalele
+/bin/devcrew           @sarveshtalele
+/install.sh             @sarveshtalele
+/install.ps1            @sarveshtalele
+/SECURITY.md            @sarveshtalele

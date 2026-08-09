@@ -1,0 +1,56 @@
+{
+  "name": "devcrew",
+  "version": "1.0.0",
+  "description": "Turn one AI coding agent into a full engineering team: 15 department subagents, a gated 15-stage SDLC pipeline, and deterministic security, compliance, and token controls. Free, local, no paid tools.",
+  "keywords": [
+    "sdlc",
+    "ai-agents",
+    "claude-code",
+    "cursor",
+    "antigravity",
+    "security",
+    "compliance",
+    "owasp",
+    "testing",
+    "playwright",
+    "agile",
+    "token-optimization"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "devcrew": "./bin/devcrew"
+  },
+  "files": [
+    "bin",
+    ".claude",
+    "modes",
+    "template",
+    ".claude-plugin",
+    "install.sh",
+    "install.ps1",
+    "README.md",
+    "Guide.md",
+    "Example.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "scripts": {
+    "test": "bash tests/cli.test.sh",
+    "lint": "bash -n bin/devcrew && for f in .claude/hooks/*.sh template/githooks/*; do bash -n \"$f\"; done && echo ok"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sarveshtalele/devcrew.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sarveshtalele/devcrew/issues"
+  },
+  "homepage": "https://github.com/sarveshtalele/devcrew#readme"
+}

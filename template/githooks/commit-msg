@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Reject AI attribution trailers. Authorship belongs to the human who is accountable for the change.
+set -euo pipefail
+MSG_FILE="$1"
+if grep -qiE '^(co-authored-by:.*(claude|anthropic|copilot|cursor|gpt))|generated with \[claude code\]' "$MSG_FILE"; then
+  echo "commit-msg: AI attribution trailer found. This project does not credit AI tools as authors." >&2
+  echo "  offending line: $(grep -inE '^(co-authored-by:.*(claude|anthropic|copilot|cursor|gpt))|generated with \[claude code\]' "$MSG_FILE" | head -1)" >&2
+  exit 1
+fi
+# Conventional Commits subject
+SUBJECT=$(head -1 "$MSG_FILE")
+case "$SUBJECT" in
+  feat*|fix*|docs*|style*|refactor*|perf*|test*|build*|ci*|chore*|revert*|security*|Merge*|Revert*) : ;;
+  *) echo "commit-msg: subject must use Conventional Commits, e.g. 'feat(auth): add refresh rotation'" >&2; exit 1 ;;
+esac
+exit 0

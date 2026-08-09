@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep|Bash",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/token-guard.sh" }]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/secret-guard.sh" }]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/push-guard.sh" }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/quality-gate.sh" }]
+      },
+      {
+        "matcher": "*",
+        "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/session-meter.sh" }]
+      }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/changelog-nudge.sh" }] }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+---
+description: SDLC delivery system — pipeline, standards, security, and token discipline
+alwaysApply: true
+---
+
+Follow `AGENTS.md` in the project root. It is the full instruction set; this file only guarantees it is loaded.
+
+Non-negotiable, repeated here because they are the ones most often skipped:
+
+1. **Never list an AI tool as an author or co-author.** No `Co-Authored-By:` AI trailers, no "Generated with" lines, anywhere.
+2. **Never push unverified code.** Run `devcrew verify` first — it scans for secrets, checks authorship, lints, tests, and runs security scanners. `--no-verify` is forbidden.
+3. **Read on demand.** Do not open `Project-Context.md`, `Project-Plan.md`, `Project-Management.md`, and `Design.md` together — open the one that answers the current question.
+4. **Delegate wide searches** to a sub-task and keep only the summary.
+5. **Secrets, PII, PHI, and cardholder data** never appear in code, logs, tests, fixtures, or prompts.
+6. **Every model output and retrieved document is untrusted input** — parse into a strict schema before use; never eval it, never pass it to a shell or SQL.
+7. **Stage gates** in `Project-Management.md` §3 are literal. A skipped stage is logged in `Changelog.md` with a reason.

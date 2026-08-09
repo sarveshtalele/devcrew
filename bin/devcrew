@@ -1,0 +1,396 @@
+#!/usr/bin/env bash
+# devcrew — install and operate the SDLC delivery system in any project.
+# Zero runtime dependencies beyond bash, git, and python3 (JSON only).
+set -euo pipefail
+
+VERSION="1.0.0"
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KIT_ROOT="$(cd "$SELF/.." && pwd)"
+
+BOLD=$'\033[1m'; DIM=$'\033[2m'; RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; CYN=$'\033[36m'; OFF=$'\033[0m'
+[ -t 1 ] || { BOLD=""; DIM=""; RED=""; GRN=""; YLW=""; CYN=""; OFF=""; }
+
+say()  { printf '%b\n' "$*"; }
+ok()   { printf '%s✓%s %s\n' "$GRN" "$OFF" "$*"; }
+warn() { printf '%s!%s %s\n' "$YLW" "$OFF" "$*"; }
+err()  { printf '%s✗%s %s\n' "$RED" "$OFF" "$*" >&2; }
+die()  { err "$*"; exit 1; }
+head_() { printf '\n%s%s%s\n' "$BOLD" "$*" "$OFF"; }
+
+need() { command -v "$1" >/dev/null 2>&1; }
+py()   { need python3 || die "python3 is required (JSON parsing only)"; python3 "$@"; }
+
+mode_names() {
+  py -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["modes"]))' "$KIT_ROOT/modes/modes.json"
+}
+mode_field() { # $1=mode $2=jsonpath-ish key
+  py -c '
+import json, sys
+m = json.load(open(sys.argv[1]))["modes"]
+name, key = sys.argv[2], sys.argv[3]
+if name not in m: sys.exit("unknown mode: " + name)
+v = m[name][key]
+print(" ".join(str(x) for x in v) if isinstance(v, list) else (json.dumps(v) if isinstance(v, dict) else v))
+' "$KIT_ROOT/modes/modes.json" "$1" "$2"
+}
+
+# ---------------------------------------------------------------- usage
+usage() {
+cat <<EOF
+${BOLD}devcrew${OFF} v$VERSION — a complete SDLC delivery system for AI coding agents
+
+${BOLD}USAGE${OFF}
+  devcrew <command> [options]
+
+${BOLD}SETUP${OFF}
+  init [dir]           Scaffold a new project (creates dir, git repo, full payload)
+  add  [dir]           Add the kit to an EXISTING project — never overwrites your files
+  doctor               Check prerequisites and installation health
+  uninstall [dir]      Remove kit files (leaves your source untouched)
+
+${BOLD}OPERATE${OFF}
+  mode [name]          Show or switch delivery mode ($(mode_names))
+  agents               List agents active in the current mode
+  verify               Run the full gate: secrets, lint, tests, security. Required before push.
+  tokens               Token consumption report
+  sync <target>        Regenerate agent config: claude | cursor | antigravity | all
+
+${BOLD}OPTIONS${OFF}
+  --mode <name>        Mode to use with init/add        (default: core)
+  --stack <name>       py-ts | ts | py | none           (default: py-ts)
+  --no-git             Skip git init and git hook installation
+  --force              Overwrite existing kit files during add
+  -h, --help           This help      -v, --version   Print version
+
+${BOLD}EXAMPLES${OFF}
+  devcrew init my-app --mode core
+  devcrew add . --mode secure          # existing repo, non-destructive
+  devcrew mode full                    # scale up when the project gets regulated
+  devcrew verify && git push           # the only sanctioned way to push
+
+Docs: README.md (overview) · Guide.md (complete manual)
+EOF
+}
+
+# ---------------------------------------------------------------- args
+CMD="${1:-help}"; shift || true
+TARGET=""; MODE=""; STACK="py-ts"; NO_GIT=0; FORCE=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --mode)    MODE="${2:-}"; shift 2 ;;
+    --stack)   STACK="${2:-}"; shift 2 ;;
+    --no-git)  NO_GIT=1; shift ;;
+    --force)   FORCE=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    -v|--version) echo "$VERSION"; exit 0 ;;
+    -*)        die "unknown option: $1" ;;
+    *)         [ -z "$TARGET" ] && TARGET="$1" || die "unexpected argument: $1"; shift ;;
+  esac
+done
+TARGET="${TARGET:-.}"
+
+current_mode() { [ -f "$TARGET/.devcrew/mode" ] && cat "$TARGET/.devcrew/mode" || echo "core"; }
+
+# ---------------------------------------------------------------- copy payload
+copy_payload() { # $1=target $2=overwrite(0|1)
+  local t="$1" ow="$2" f rel
+  mkdir -p "$t"
+  ( cd "$KIT_ROOT/template" && find . -type f ) | sed 's|^\./||' | while read -r rel; do
+    [ "$rel" = "settings.json" ] && continue
+    [ "$rel" = "README-project.md" ] && continue
+    local dest="$t/$rel"
+    if [ -e "$dest" ] && [ "$ow" -eq 0 ]; then
+      printf '%s  skip (exists): %s%s\n' "$DIM" "$rel" "$OFF"
+      continue
+    fi
+    mkdir -p "$(dirname "$dest")"
+    cp "$KIT_ROOT/template/$rel" "$dest"
+  done
+  # agent runtime into .claude/
+  mkdir -p "$t/.claude"
+  cp -R "$KIT_ROOT/.claude/agents" "$t/.claude/agents"
+  cp -R "$KIT_ROOT/.claude/skills" "$t/.claude/skills"
+  cp -R "$KIT_ROOT/.claude/hooks"  "$t/.claude/hooks"
+  chmod +x "$t/.claude/hooks"/*.sh
+  mkdir -p "$t/.claude/state" "$t/.devcrew"
+  if [ ! -e "$t/.claude/settings.json" ] || [ "$ow" -eq 1 ]; then
+    cp "$KIT_ROOT/template/settings.json" "$t/.claude/settings.json"
+  fi
+  # kit CLI available locally without a global install
+  mkdir -p "$t/.devcrew/bin"; cp "$SELF/devcrew" "$t/.devcrew/bin/devcrew"; chmod +x "$t/.devcrew/bin/devcrew"
+  cp -R "$KIT_ROOT/modes" "$t/.devcrew/modes"
+}
+
+detect_stack() { # $1=target — write cheap, deterministic facts about an existing codebase
+  local t="$1"
+  py - "$t" <<'PYEOF'
+import json, os, sys, subprocess
+root = sys.argv[1]
+def has(*names): return [n for n in names if os.path.exists(os.path.join(root, n))]
+def count(ext):
+    n = 0
+    for dp, dn, fn in os.walk(root):
+        dn[:] = [d for d in dn if d not in {".git","node_modules",".venv","dist","build",".devcrew",".claude"}]
+        n += sum(1 for f in fn if f.endswith(ext))
+        if n > 5000: break
+    return n
+facts = {
+    "detected_at": __import__("datetime").datetime.now().isoformat(timespec="seconds"),
+    "greenfield": not (count(".py") or count(".ts") or count(".tsx") or count(".js") or count(".go") or count(".rs")),
+    "manifests": has("package.json","pyproject.toml","requirements.txt","go.mod","Cargo.toml","pom.xml","build.gradle","Gemfile","composer.json"),
+    "file_counts": {e: count(e) for e in (".py",".ts",".tsx",".js",".jsx",".go",".rs",".java",".sql")},
+    "test_dirs": has("tests","test","spec","__tests__"),
+    "ci": has(".github/workflows",".gitlab-ci.yml","Jenkinsfile",".circleci"),
+    "iac": has("terraform","infra","Dockerfile","docker-compose.yml","k8s","helm"),
+    "docs": has("README.md","docs","ARCHITECTURE.md","CONTRIBUTING.md"),
+    "existing_agent_config": has("CLAUDE.md","AGENTS.md",".cursor/rules",".github/copilot-instructions.md"),
+}
+try:
+    facts["git"] = {
+        "commits": int(subprocess.run(["git","-C",root,"rev-list","--count","HEAD"],capture_output=True,text=True).stdout or 0),
+        "contributors": len(set(subprocess.run(["git","-C",root,"log","--format=%ae"],capture_output=True,text=True).stdout.split())),
+    }
+except Exception:
+    facts["git"] = None
+os.makedirs(os.path.join(root, ".devcrew"), exist_ok=True)
+with open(os.path.join(root, ".devcrew", "project-facts.json"), "w") as f:
+    json.dump(facts, f, indent=2)
+print("greenfield" if facts["greenfield"] else "brownfield")
+PYEOF
+}
+
+apply_mode() { # $1=target $2=mode — prune agents + record state
+  local t="$1" m="$2" keep a
+  keep=" $(mode_field "$m" agents) "
+  for a in "$t/.claude/agents"/*.md; do
+    [ -e "$a" ] || continue
+    local name; name="$(basename "$a" .md)"
+    case "$keep" in *" $name "*) : ;; *) rm -f "$a" ;; esac
+  done
+  mkdir -p "$t/.devcrew"; printf '%s\n' "$m" > "$t/.devcrew/mode"
+  py -c '
+import json, sys
+cfg = json.load(open(sys.argv[1]))["modes"][sys.argv[2]]
+json.dump({"mode": sys.argv[2], **cfg}, open(sys.argv[3], "w"), indent=2)
+' "$KIT_ROOT/modes/modes.json" "$m" "$t/.devcrew/active-mode.json"
+}
+
+gen_portable_config() { # $1=target — AGENTS.md + Cursor rules from the same source of truth
+  local t="$1"
+  cp "$KIT_ROOT/template/AGENTS.md" "$t/AGENTS.md" 2>/dev/null || true
+  mkdir -p "$t/.cursor/rules"
+  cp "$KIT_ROOT/template/cursor-rules.mdc" "$t/.cursor/rules/devcrew.mdc" 2>/dev/null || true
+  mkdir -p "$t/.agent"; cp "$t/AGENTS.md" "$t/.agent/AGENTS.md" 2>/dev/null || true
+  mkdir -p "$t/.github"; cp "$t/AGENTS.md" "$t/.github/copilot-instructions.md" 2>/dev/null || true
+}
+
+install_githooks() { # $1=target
+  local t="$1"
+  git -C "$t" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  local hd; hd="$(git -C "$t" rev-parse --git-path hooks)"
+  mkdir -p "$t/$hd" 2>/dev/null || mkdir -p "$hd"
+  for h in commit-msg pre-push; do
+    cp "$KIT_ROOT/template/githooks/$h" "$t/$hd/$h" 2>/dev/null || cp "$KIT_ROOT/template/githooks/$h" "$hd/$h"
+    chmod +x "$t/$hd/$h" 2>/dev/null || chmod +x "$hd/$h"
+  done
+}
+
+# ---------------------------------------------------------------- commands
+cmd_init() {
+  local m="${MODE:-core}"
+  case " $(mode_names) " in *" $m "*) : ;; *) die "unknown mode '$m'. available: $(mode_names)" ;; esac
+  [ -e "$TARGET" ] && [ -n "$(ls -A "$TARGET" 2>/dev/null)" ] && \
+    die "$TARGET already has files in it.
+    For an existing project use:  devcrew add $TARGET
+    'add' never overwrites anything you already have — it skips every existing
+    file, scans the codebase into .devcrew/project-facts.json, and leaves your
+    README, Makefile, CI, and source untouched."
+  mkdir -p "$TARGET"
+  head_ "Scaffolding $(basename "$(cd "$TARGET" && pwd)") — mode: $m"
+  copy_payload "$TARGET" 1
+  mv "$TARGET/README-project.md" "$TARGET/README.md" 2>/dev/null || cp "$KIT_ROOT/template/README-project.md" "$TARGET/README.md"
+  apply_mode "$TARGET" "$m"
+  gen_portable_config "$TARGET"
+  detect_stack "$TARGET" >/dev/null
+  if [ "$NO_GIT" -eq 0 ]; then
+    git -C "$TARGET" init -q 2>/dev/null && ok "git repository initialized"
+    install_githooks "$TARGET"
+    ok "git hooks installed (commit-msg: no AI attribution + conventional commits; pre-push: verification gate)"
+  fi
+  ok "$(ls "$TARGET/.claude/agents" | wc -l | tr -d ' ') agents · $(ls -d "$TARGET"/.claude/skills/*/ | wc -l | tr -d ' ') skills · $(ls "$TARGET"/.claude/hooks/*.sh | wc -l | tr -d ' ') hooks"
+  next_steps "$m"
+}
+
+cmd_add() {
+  local m="${MODE:-$(current_mode)}"
+  case " $(mode_names) " in *" $m "*) : ;; *) die "unknown mode '$m'. available: $(mode_names)" ;; esac
+  [ -d "$TARGET" ] || die "$TARGET does not exist"
+  head_ "Adding devcrew to $(cd "$TARGET" && pwd) — mode: $m"
+  say "${DIM}existing files are never overwritten (use --force to replace kit files)${OFF}"
+  copy_payload "$TARGET" "$FORCE"
+  apply_mode "$TARGET" "$m"
+  gen_portable_config "$TARGET"
+  local kind; kind="$(detect_stack "$TARGET")"
+  ok "codebase scanned: $kind — facts in .devcrew/project-facts.json (agents read this instead of re-discovering the stack)"
+  [ "$NO_GIT" -eq 0 ] && install_githooks "$TARGET" && ok "git hooks installed"
+  ok "kit added. Your source, README, and CI were left alone."
+  next_steps "$m"
+}
+
+next_steps() {
+  head_ "Next"
+  say "  1. cd $TARGET"
+  say "  2. Install the token-reduction prerequisites (see README ${DIM}Prerequisites${OFF}):"
+  say "     ${CYN}curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash${OFF}"
+  say "     ${CYN}brew install rtk && rtk init -g${OFF}"
+  say "  3. Open the project in Claude Code / Cursor / Antigravity and run: ${CYN}/project-init${OFF}"
+  say "  4. Build a feature: ${CYN}/feature <name>${OFF}   ·   Ship it: ${CYN}devcrew verify && git push${OFF}"
+  say "\n  Mode ${BOLD}$1${OFF}: $(mode_field "$1" label) — $(mode_field "$1" use)"
+}
+
+cmd_mode() {
+  local want="${TARGET}"
+  if [ "$want" = "." ] || [ -z "$want" ]; then
+    head_ "Modes"
+    local m
+    for m in $(mode_names); do
+      local cur=" "; [ "$m" = "$(current_mode)" ] && cur="*"
+      printf '  %s %-8s %-22s %s\n' "$cur" "$m" "$(mode_field "$m" label)" "$(mode_field "$m" use)"
+    done
+    say "\n${DIM}* = active. Switch with: devcrew mode <name>${OFF}"
+    return 0
+  fi
+  case " $(mode_names) " in *" $want "*) : ;; *) die "unknown mode '$want'. available: $(mode_names)" ;; esac
+  TARGET="."
+  [ -d ".claude/agents" ] || die "not an devcrew project (no .claude/agents). Run: devcrew add ."
+  cp -R "$KIT_ROOT/.claude/agents/." ".claude/agents/"   # restore the full set, then prune
+  apply_mode "." "$want"
+  ok "mode → $want ($(mode_field "$want" label))"
+  say "  agents: $(mode_field "$want" agents)"
+  say "  stages: $(mode_field "$want" stages)"
+}
+
+cmd_agents() {
+  local m; m="$(current_mode)"
+  head_ "Active agents — mode: $m"
+  local a
+  for a in .claude/agents/*.md; do
+    [ -e "$a" ] || { warn "no agents installed"; return 0; }
+    printf '  %-20s %s\n' "$(basename "$a" .md)" "$(grep -m1 '^description:' "$a" | cut -c14- | cut -c1-70)"
+  done
+}
+
+cmd_verify() {
+  head_ "Verification gate"
+  local failed=0 ran=0
+  step() { # $1=label $2...=command
+    local label="$1"; shift
+    if ! need "${1}"; then printf '  %s- %-22s not installed, skipped%s\n' "$DIM" "$label" "$OFF"; return 0; fi
+    ran=$((ran+1))
+    if "$@" >/tmp/devcrew-verify.$$ 2>&1; then ok "$label"; else
+      err "$label"; sed -n '1,15p' /tmp/devcrew-verify.$$ | sed 's/^/      /'; failed=$((failed+1))
+    fi
+    rm -f /tmp/devcrew-verify.$$
+  }
+
+  # 1. secrets — always first; a leaked credential makes every later result irrelevant
+  step "secrets (gitleaks)" gitleaks detect --no-banner --redact --exit-code 1
+  # 2. AI attribution must not be in history about to be pushed
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local base; base="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo '')"
+    local range="HEAD"; [ -n "$base" ] && range="$base..HEAD"
+    if git log --format='%B' "$range" 2>/dev/null | grep -qiE 'co-authored-by:.*(claude|anthropic|copilot|cursor)|generated with \[claude code\]'; then
+      err "AI attribution trailer present in commits about to be pushed"; failed=$((failed+1))
+    else ok "authorship (no AI attribution)"; fi
+  fi
+  # 3. static analysis + types
+  [ -f Makefile ] && grep -q '^lint:' Makefile && step "lint + types" make lint
+  # 4. tests
+  [ -f Makefile ] && grep -q '^test:' Makefile && step "unit + integration tests" make test
+  # 5. security scanners
+  [ -f Makefile ] && grep -q '^sec:'  Makefile && step "SAST + SCA" make sec
+  # 6. e2e when the mode requires it
+  local m; m="$(current_mode)"
+  if [ "$(mode_field "$m" gates | py -c 'import json,sys; print(json.load(sys.stdin).get("e2e", False))' 2>/dev/null)" = "True" ]; then
+    [ -f Makefile ] && grep -q '^e2e:' Makefile && step "E2E + a11y" make e2e
+  fi
+
+  if [ "$failed" -gt 0 ]; then
+    printf '\n%s%d check(s) failed — nothing may be pushed.%s\n' "$RED" "$failed" "$OFF"
+    rm -f .devcrew/verify-ok
+    exit 1
+  fi
+  mkdir -p .devcrew
+  printf 'verified %s by %s (%d checks)\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(git config user.name 2>/dev/null || whoami)" "$ran" > .devcrew/verify-ok
+  printf '\n%sAll checks passed.%s Push is unblocked until src/ or tests/ changes again.\n' "$GRN" "$OFF"
+}
+
+cmd_doctor() {
+  head_ "devcrew doctor"
+  local p f
+  say "${BOLD}Required${OFF}"
+  for p in git python3 bash; do
+    if need "$p"; then ok "$p — $($p --version 2>&1 | head -1)"; else err "$p missing"; fi
+  done
+  say "\n${BOLD}Token reduction (strongly recommended)${OFF}"
+  if [ -d "$HOME/.claude/skills/caveman" ] || need caveman; then ok "caveman installed"
+  else warn "caveman not installed — curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash"; fi
+  if need rtk; then ok "rtk — $(rtk --version 2>&1 | head -1)"
+  else warn "rtk not installed — brew install rtk && rtk init -g"; fi
+  say "\n${BOLD}Toolchain (optional per stack)${OFF}"
+  for p in gitleaks ruff mypy pytest node pnpm uv make gh semgrep; do
+    need "$p" && ok "$p" || printf '  %s- %s not installed%s\n' "$DIM" "$p" "$OFF"
+  done
+  say "\n${BOLD}Project${OFF}"
+  [ -d .claude/agents ] && ok "agents: $(ls .claude/agents | wc -l | tr -d ' ') (mode: $(current_mode))" || warn "not an devcrew project — run: devcrew add ."
+  for f in CLAUDE.md AGENTS.md Project-Context.md Project-Plan.md Design.md Project-Management.md Changelog.md; do
+    [ -f "$f" ] && ok "$f" || warn "$f missing"
+  done
+  if [ -d .claude/hooks ]; then
+    local bad=0
+    for f in .claude/hooks/*.sh; do [ -x "$f" ] || { warn "not executable: $f"; bad=1; }; done
+    [ "$bad" -eq 0 ] && ok "hooks executable"
+  fi
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local hd; hd="$(git rev-parse --git-path hooks)"
+    [ -x "$hd/pre-push" ] && ok "pre-push gate installed" || warn "pre-push gate missing — run: devcrew add ."
+  else warn "not a git repository — the changelog and review gates need git"; fi
+  local ph; ph=$(grep -rlo '{{[A-Z_]*}}' --include='*.md' . 2>/dev/null | head -5)
+  [ -n "$ph" ] && warn "unfilled placeholders remain — run /project-init in your agent" || true
+}
+
+cmd_sync() {
+  local t="${TARGET:-all}"
+  case "$t" in
+    claude|cursor|antigravity|all|.) gen_portable_config "." ; ok "regenerated AGENTS.md, .cursor/rules/devcrew.mdc, .agent/AGENTS.md, .github/copilot-instructions.md" ;;
+    *) die "unknown sync target: $t (claude|cursor|antigravity|all)" ;;
+  esac
+}
+
+cmd_tokens() {
+  [ -f scripts/token_report.py ] && py scripts/token_report.py || die "scripts/token_report.py not found — run: devcrew add ."
+}
+
+cmd_uninstall() {
+  local t="${TARGET:-.}"
+  head_ "Removing devcrew from $t"
+  say "${DIM}source, tests, README, and CI are left untouched${OFF}"
+  rm -rf "$t/.claude/agents" "$t/.claude/skills" "$t/.claude/hooks" "$t/.devcrew" "$t/trackers" "$t/.cursor/rules/devcrew.mdc"
+  rm -f "$t/Project-Context.md" "$t/Project-Plan.md" "$t/Project-Management.md" "$t/Design.md" "$t/AGENTS.md"
+  ok "removed. CLAUDE.md and Changelog.md kept — they usually contain your edits."
+}
+
+case "$CMD" in
+  init)      cmd_init ;;
+  add)       cmd_add ;;
+  mode)      cmd_mode ;;
+  agents)    cmd_agents ;;
+  verify)    cmd_verify ;;
+  doctor)    cmd_doctor ;;
+  sync)      cmd_sync ;;
+  tokens)    cmd_tokens ;;
+  uninstall) cmd_uninstall ;;
+  help|-h|--help) usage ;;
+  version|-v|--version) echo "$VERSION" ;;
+  *) err "unknown command: $CMD"; usage; exit 1 ;;
+esac

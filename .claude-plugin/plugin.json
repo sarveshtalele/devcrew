@@ -1,0 +1,24 @@
+{
+  "name": "devcrew",
+  "description": "A complete, free SDLC delivery system for AI coding agents: 15 department subagents, a 15-stage gated pipeline, agile trackers, and deterministic security/compliance/token hooks.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Sarvesh Talele",
+    "url": "https://github.com/sarveshtalele"
+  },
+  "homepage": "https://github.com/sarveshtalele/devcrew",
+  "repository": "https://github.com/sarveshtalele/devcrew",
+  "license": "MIT",
+  "keywords": [
+    "sdlc",
+    "agents",
+    "security",
+    "compliance",
+    "testing",
+    "agile",
+    "token-optimization"
+  ],
+  "agents": "./.claude/agents",
+  "skills": "./.claude/skills",
+  "hooks": "./.claude/hooks/hooks.json"
+}

@@ -1,0 +1,41 @@
+{
+  "$comment": "Delivery modes. Each mode selects agents, pipeline stages, and gate strictness. Switch with: devcrew mode <name>",
+  "default": "core",
+  "modes": {
+    "lite": {
+      "label": "Lite — 4 agents",
+      "use": "Solo dev, prototypes, internal scripts. Ships fast, keeps review + tests.",
+      "agents": ["orchestrator", "tech-lead", "code-reviewer", "qa-engineer"],
+      "stages": [4, 5, 6, 7, 8],
+      "gates": { "security": "advisory", "compliance": "off", "coverage": 70, "e2e": false, "a11y": false }
+    },
+    "core": {
+      "label": "Core — 7 agents (default)",
+      "use": "Most products. Full product-to-merge flow without the GRC overhead.",
+      "agents": ["orchestrator", "product-manager", "architect", "backend-engineer", "frontend-engineer", "code-reviewer", "qa-engineer"],
+      "stages": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "gates": { "security": "blocking", "compliance": "advisory", "coverage": 85, "e2e": false, "a11y": true }
+    },
+    "secure": {
+      "label": "Secure — 11 agents",
+      "use": "Anything handling user data, money, or auth. Adds AppSec, E2E, and DevOps.",
+      "agents": ["orchestrator", "product-manager", "architect", "tech-lead", "backend-engineer", "frontend-engineer", "code-reviewer", "qa-engineer", "e2e-automation", "security-engineer", "devops-engineer"],
+      "stages": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12],
+      "gates": { "security": "blocking", "compliance": "advisory", "coverage": 85, "e2e": true, "a11y": true }
+    },
+    "ai": {
+      "label": "AI — 12 agents",
+      "use": "Products with a model call in the critical path. Turns on the OWASP LLM Top 10 control set.",
+      "agents": ["orchestrator", "product-manager", "ux-designer", "architect", "tech-lead", "backend-engineer", "frontend-engineer", "code-reviewer", "qa-engineer", "e2e-automation", "security-engineer", "sre-observability"],
+      "stages": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14],
+      "gates": { "security": "blocking", "compliance": "advisory", "coverage": 85, "e2e": true, "a11y": true, "llm_controls": true }
+    },
+    "full": {
+      "label": "Full — 15 agents",
+      "use": "Regulated or audited delivery. Every stage, every gate, full evidence trail.",
+      "agents": ["orchestrator", "product-manager", "ux-designer", "architect", "tech-lead", "backend-engineer", "frontend-engineer", "code-reviewer", "qa-engineer", "e2e-automation", "devops-engineer", "security-engineer", "compliance-officer", "sre-observability", "release-manager"],
+      "stages": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      "gates": { "security": "blocking", "compliance": "blocking", "coverage": 85, "e2e": true, "a11y": true, "llm_controls": true }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "devcrew-marketplace",
+  "owner": {
+    "name": "Sarvesh Talele",
+    "url": "https://github.com/sarveshtalele"
+  },
+  "plugins": [
+    {
+      "name": "devcrew",
+      "source": "./",
+      "description": "Full SDLC pipeline for AI agents: departments, gates, trackers, security + compliance + token hooks."
+    }
+  ]
+}

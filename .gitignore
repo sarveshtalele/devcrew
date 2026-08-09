@@ -1,0 +1,10 @@
+.DS_Store
+node_modules/
+*.log
+tmp/
+/test-output/
+
+# runtime state, never committed
+.devcrew/
+.claude/state/
+.claude/settings.local.json
