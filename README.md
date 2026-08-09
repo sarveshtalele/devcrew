@@ -462,7 +462,7 @@ your-project/
 template/          the payload copied into target projects
 modes/modes.json   mode definitions
 bin/devcrew       the CLI
-tests/cli.test.sh  108 assertions across the CLI, hooks, git hooks, plugin schema, and design tooling
+tests/cli.test.sh  137 assertions across the CLI, hooks, git hooks, plugin schema, and design tooling
 ```
 
 Agents and skills live in `.claude/` so that opening this repository in Claude Code gives you the full team immediately — no setup step, and one source of truth for both the plugin and the CLI.

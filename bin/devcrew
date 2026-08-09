@@ -3,7 +3,7 @@
 # Zero runtime dependencies beyond bash, git, and python3 (JSON only).
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="1.3.0"
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KIT_ROOT="$(cd "$SELF/.." && pwd)"
 

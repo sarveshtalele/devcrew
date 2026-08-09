@@ -38,7 +38,7 @@ done
 echo; echo "== cli basics =="
 exits "help exits 0" 0 "$CLI" help
 exits "unknown command exits 1" 1 "$CLI" bogus-command
-is "version" "$("$CLI" --version)" "1.0.0"
+is "version matches package.json" "$("$CLI" --version)" "$(python3 -c 'import json;print(json.load(open("'"$KIT"'/package.json"))["version"])')"
 
 echo; echo "== init =="
 P="$WORK/newproj"

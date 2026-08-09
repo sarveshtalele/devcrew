@@ -1,7 +1,7 @@
 {
   "name": "devcrew",
   "displayName": "devcrew \u2014 SDLC delivery system",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "A complete, free SDLC delivery system for AI coding agents: 15 department subagents, a 15-stage gated pipeline, agile trackers, and deterministic security/compliance/token hooks.",
   "author": {
     "name": "Sarvesh Talele",

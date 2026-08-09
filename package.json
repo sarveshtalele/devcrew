@@ -1,6 +1,6 @@
 {
   "name": "devcrew",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "Turn one AI coding agent into a full engineering team: 15 department subagents, a gated 15-stage SDLC pipeline, and deterministic security, compliance, and token controls. Free, local, no paid tools.",
   "keywords": [
     "sdlc",
