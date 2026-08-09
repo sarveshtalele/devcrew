@@ -56,39 +56,19 @@ Five ideas explain the whole design.
 
 `devcrew verify` skips checks whose tool isn't installed and says so — it never silently passes a check it couldn't run.
 
-### 2.2 Token-reduction prerequisites
+### 2.2 Third-party tools
 
-Install both before your first session. They are free, local, open source, and attack different parts of the token bill.
+You install none of these by hand. The `optimized` runtime profile ([§3b](#3b-runtime-profiles)) installs them, per platform, after asking.
 
-**caveman** — compresses what the agent writes.
+| Tool | Repo | Layer | How it arrives |
+|---|---|---|---|
+| **caveman** | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) | compresses agent output | profile installer (`curl \| bash`, or `irm \| iex` on Windows) |
+| **rtk** | [rtk-ai/rtk](https://github.com/rtk-ai/rtk) | compresses tool results | profile installer (brew / prebuilt binary / scoop / cargo) |
+| **DESIGN.md** | [google-labs-code/design.md](https://github.com/google-labs-code/design.md) | design token lint and export | `npx -y @google/design.md`, nothing installed |
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash
-```
+Their commands, levels, and trade-offs live in `TOKEN-OPTIMIZATION.md`, which the installer drops into the project and references from `CLAUDE.md` and `AGENTS.md`. Keeping that detail out of the standing documents is the point — it is read once per session, not on every turn.
 
-Windows PowerShell 5.1+:
-
-```powershell
-irm https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.ps1 | iex
-```
-
-Requires Node ≥18. Works across 30+ agents. Levels `lite`, `full`, `ultra`, plus classical-Chinese variants; switch with `/caveman <level>`. Reported ~65% fewer output tokens on prose and ~8.5% across full agentic runs. Extra commands: `/caveman-stats`, `/caveman-commit`, `/caveman-review`, `/caveman-compress`.
-<https://github.com/JuliusBrussee/caveman>
-
-**rtk** — compresses what the agent reads.
-
-```bash
-brew install rtk && rtk init -g
-```
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh && rtk init -g
-```
-
-A single Rust binary that intercepts shell commands and filters their output before it enters context — `git status` collapsed by state, test output reduced to failures, `ls` as a tree with counts, `git diff` with headers stripped. Up to 90% of bash output removed. `rtk init -g` installs a hook that rewrites Bash calls automatically; restart your agent afterward. `rtk gain` shows savings, `rtk discover` finds missed opportunities.
-<https://github.com/rtk-ai/rtk>
-
-> These are complementary, not alternatives. caveman shrinks output tokens, rtk shrinks tool-result tokens, devcrew shrinks what is read in the first place.
+Under the `normal` profile none of this applies, and nothing is installed.
 
 ### 2.2b Windows
 

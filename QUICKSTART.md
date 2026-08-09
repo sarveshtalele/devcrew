@@ -4,49 +4,17 @@ Zero to a running SDLC pipeline. Every command here is copy-pasteable. If someth
 
 ---
 
-## 0. Prerequisites (3 minutes)
+## 0. Prerequisites (30 seconds)
 
-You need `git`, `python3`, and a POSIX shell. That's it for the `normal` profile — skip to step 1.
+`git`, `python3`, and a POSIX shell — Git Bash or WSL on Windows. That is all you install by hand.
 
-**For the `optimized` profile**, two more tools do the heavy lifting on token cost. You do **not** have to install them by hand: choosing `--profile optimized` in step 3 runs a script that does everything below, scoped to your project folder. The manual commands are here for reference and for when you want them globally before starting.
+The token-reduction tools are installed for you when you pick the `optimized` profile in step 2:
 
-### macOS / Linux / WSL
-
-```bash
-# caveman — compresses what the agent writes (~65% fewer output tokens on prose)
-curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash
-
-# rtk — compresses what the agent reads (up to 90% of bash output)
-brew install rtk && rtk init -g
-```
-
-### Windows PowerShell
-
-```powershell
-irm https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.ps1 | iex
-scoop install rtk    # or: cargo install rtk
-rtk init -g
-```
-
-Restart your agent afterward so `rtk init -g` takes effect.
-
-**Using caveman:** it installs as a skill you invoke by name.
-
-| Command | Effect |
-|---|---|
-| `/caveman` | Turn it on at the default `full` level |
-| `/caveman lite` | Professional but tight — keeps full sentences |
-| `/caveman ultra` | Maximum compression |
-| `/caveman-stats` | Output-token savings this session |
-| `/caveman-commit` | Compressed commit message |
-| `/caveman-review` | Compressed PR review comments |
-| "stop caveman" | Back to normal prose |
-
-Installed to `~/.claude/skills/caveman/` for Claude Code; other agents get their own registry path — see [the caveman INSTALL matrix](https://github.com/JuliusBrussee/caveman/blob/main/INSTALL.md). To make it the default for every session, add a line to `~/.claude/CLAUDE.md`:
-
-```markdown
-Invoke the `caveman` skill at the start of every session unless I say otherwise.
-```
+| Tool | Repo | Compresses |
+|---|---|---|
+| caveman | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) | what the agent writes |
+| rtk | [rtk-ai/rtk](https://github.com/rtk-ai/rtk) | what tool calls return |
+| DESIGN.md linter | [google-labs-code/design.md](https://github.com/google-labs-code/design.md) | design values, via `npx` — no install |
 
 ---
 
@@ -80,7 +48,7 @@ Everything under **Required** should be green. Yellow warnings for optional tool
 | Bash results | full | rtk-filtered |
 | Design lint | advisory | blocking |
 
-Choosing `optimized` runs the installer for you — step 0 above, automated and scoped to the project folder. Skip step 0 entirely if you pick it.
+Choosing `optimized` installs and wires the three tools from step 0, scoped to this project folder.
 
 It detects your platform and picks the right commands: homebrew on macOS, the prebuilt binary or `cargo` on Linux and WSL, scoop or cargo on Windows, and a node install hint matching your package manager (`apt-get`, `dnf`, `pacman`, `zypper`, `apk`, `winget`, `scoop`, `choco`). Git Bash is detected and told to install rtk from PowerShell instead. Full matrix in the [README](README.md#how-the-installer-behaves-per-platform).
 

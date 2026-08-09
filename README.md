@@ -121,57 +121,17 @@ Windows needs a POSIX shell because the gates are shell hooks — the same shell
 
 Per-stack tooling (`uv`, `pnpm`, `ruff`, `pytest`, `gitleaks`, …) is optional — `devcrew verify` skips what isn't installed and tells you.
 
-### Prerequisites: cut your token bill first
+### Third-party tools
 
-devcrew reduces token use through process discipline — budgets, delegation, on-demand reads. Two external tools cut it further, at a different layer. **Install both before you start.** They are free, local, and open source.
+Nothing here needs installing by hand. `--profile optimized` runs the installer for you; `--profile normal` uses none of it.
 
-#### 1. caveman — compresses what the agent *writes*
+| Tool | Repo | Layer | Installed by |
+|---|---|---|---|
+| **caveman** | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) | compresses what the agent writes | profile installer |
+| **rtk** | [rtk-ai/rtk](https://github.com/rtk-ai/rtk) | compresses what tool calls return | profile installer |
+| **DESIGN.md** | [google-labs-code/design.md](https://github.com/google-labs-code/design.md) | design tokens, contrast + reference linting | `npx`, no install |
 
-Terse output, byte-exact code and errors. Reports ~65% fewer output tokens on prose, ~8.5% across full agentic runs.
-
-```bash
-# macOS / Linux / WSL — requires Node ≥18
-curl -fsSL https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.sh | bash
-```
-
-```powershell
-# Windows PowerShell 5.1+
-irm https://raw.githubusercontent.com/JuliusBrussee/caveman/main/install.ps1 | iex
-```
-
-Levels: `lite`, `full` (default), `ultra`, plus classical-Chinese variants.
-
-| Command | Effect |
-|---|---|
-| `/caveman` | On, at the default `full` level |
-| `/caveman lite` | Tight but keeps full sentences |
-| `/caveman ultra` | Maximum compression |
-| `/caveman-stats` | Output-token savings this session |
-| `/caveman-commit` · `/caveman-review` | Compressed commit messages and PR comments |
-| "stop caveman" | Back to normal prose |
-
-Installs to `~/.claude/skills/caveman/` for Claude Code; other agents have their own registry paths ([full matrix](https://github.com/JuliusBrussee/caveman/blob/main/INSTALL.md)). To default it on for every session, add to `~/.claude/CLAUDE.md`: *"Invoke the `caveman` skill at the start of every session unless I say otherwise."*
-
-→ **<https://github.com/JuliusBrussee/caveman>**
-
-#### 2. rtk — compresses what the agent *reads*
-
-A Rust binary that intercepts shell commands and filters their output before it reaches the context: `git status` collapsed by state, test runs reduced to failures, `ls` as a tree with counts. Up to **90% of bash output** removed.
-
-```bash
-brew install rtk && rtk init -g
-# or
-curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh && rtk init -g
-```
-
-`rtk init -g` installs a hook so Bash calls are rewritten automatically. Check savings with `rtk gain`.
-→ **<https://github.com/rtk-ai/rtk>**
-
-Together: **caveman** trims output, **rtk** trims tool results, **devcrew** trims what gets read at all. Different layers, they compose.
-
-Verify all three with `devcrew doctor`.
-
----
+Commands and levels for each are in [TOKEN-OPTIMIZATION.md](template/TOKEN-OPTIMIZATION.md), which lands in your project when the profile is active. Per-platform behaviour: [below](#how-the-installer-behaves-per-platform).
 
 ## Quick start
 

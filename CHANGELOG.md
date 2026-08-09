@@ -4,6 +4,9 @@ All notable changes to devcrew. Format: [Keep a Changelog](https://keepachangelo
 
 ## [1.3.0] - 2026-08-09
 
+### Changed
+- Hand-install instructions for caveman and rtk removed from README, Quickstart, and Guide. The profile installer handles them, so all three now carry a single table naming each tool, its repository, and what it compresses. Command-level detail lives in `TOKEN-OPTIMIZATION.md`, which lands in the project only when the optimized profile is active — keeping it out of the documents that are read on every turn
+
 ### Added
 - **Runtime profiles**, orthogonal to delivery modes. A mode decides who works on the code; a profile decides how the agent runs.
   - `normal` (default) — portable, zero installs. Cursor, Antigravity, VS Code, Copilot, Codex.
